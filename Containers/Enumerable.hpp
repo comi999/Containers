@@ -49,66 +49,64 @@ public:
 
 		Iterator( Iterator& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
-			, m_Iterator( m_Enumerable.m_Modifier( a_Iterator, 0, ModifyType::Create ) )
+			, m_Iterator( m_Enumerable.m_Modifier( &a_Iterator, 0, ModifyType::Create ) )
 		{ }
 
 		Iterator( Iterator&& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
-			, m_Iterator( m_Enumerable.m_Modifier( a_Iterator, 0, ModifyType::Create ) )
+			, m_Iterator( a_Iterator.m_Iterator )
 		{ }
 
 		~Iterator()
 		{
-			m_Enumerable.m_Modifier( *this, 0, ModifyType::Delete );
+			m_Enumerable.m_Modifier( m_Iterator, 0, ModifyType::Delete );
 		}
 
 		inline Iterator& operator++()
 		{
-			return *reinterpret_cast< Iterator* >( m_Enumerable.m_Modifier( *this, 1, ModifyType::Shift ) );
+			return *reinterpret_cast< Iterator* >( m_Enumerable.m_Modifier( this, 1, ModifyType::Shift ) );
 		}
 
 		inline Iterator operator++( int )
 		{
-			void* New = m_Enumerable.m_Modifier( *this, 0, ModifyType::Create );
-			m_Enumerable.m_Modifier( *this, 1, ModifyType::Shift );
+			void* New = m_Enumerable.m_Modifier( this, 0, ModifyType::Create );
+			m_Enumerable.m_Modifier( this, 1, ModifyType::Shift );
 			return Iterator( m_Enumerable, New );
 		}
 
 		inline Iterator& operator--()
 		{
-			return *reinterpret_cast< Iterator* >( m_Enumerable.m_Modifier( *this, -1, ModifyType::Shift ) );
+			return *reinterpret_cast< Iterator* >( m_Enumerable.m_Modifier( this, -1, ModifyType::Shift ) );
 		}
 
 		inline Iterator operator--( int )
 		{
-			void* New = m_Enumerable.m_Modifier( *this, 0, ModifyType::Create );
-			m_Enumerable.m_Modifier( *this, -1, ModifyType::Shift );
+			void* New = m_Enumerable.m_Modifier( this, 0, ModifyType::Create );
+			m_Enumerable.m_Modifier( this, -1, ModifyType::Shift );
 			return Iterator( m_Enumerable, New );
 		}
 
 		inline Iterator& operator+=( int a_Places )
 		{
-			auto ier = **this;
-			auto l = m_Enumerable.m_Modifier( *this, a_Places, ModifyType::Shift );
-			return *reinterpret_cast< Iterator* >( l );
+			return *reinterpret_cast< Iterator* >( m_Enumerable.m_Modifier( this, a_Places, ModifyType::Shift ) );
 		}
 
 		inline Iterator& operator-=( int a_Places )
 		{
-			return *reinterpret_cast< Iterator* >( m_Enumerable.m_Modifier( *this, -a_Places, ModifyType::Shift ) );
+			return *reinterpret_cast< Iterator* >( m_Enumerable.m_Modifier( this, -a_Places, ModifyType::Shift ) );
 		}
 
 		inline Iterator operator+( int a_Places )
 		{
 			Iterator New( *this );
-			m_Enumerable.m_Modifier( New, a_Places, ModifyType::Shift );
+			m_Enumerable.m_Modifier( &New, a_Places, ModifyType::Shift );
 			return Iterator( New );
 		}
 
 		inline Iterator operator-( int a_Places )
 		{
 			Iterator New( *this );
-			m_Enumerable.m_Modifier( New, -a_Places, ModifyType::Shift );
+			m_Enumerable.m_Modifier( &New, -a_Places, ModifyType::Shift );
 			return Iterator( New );
 		}
 
@@ -120,12 +118,12 @@ public:
 		inline T& operator*()
 		{
 			auto val = *this;
-			return *reinterpret_cast< T* >( m_Enumerable.m_Modifier( *this, 0, ModifyType::Dereference ) );
+			return *reinterpret_cast< T* >( m_Enumerable.m_Modifier( this, 0, ModifyType::Dereference ) );
 		}
 
 		inline T* operator->()
 		{
-			return *reinterpret_cast< T* >( m_Enumerable.m_Modifier( *this, 0, ModifyType::Dereference ) );
+			return *reinterpret_cast< T* >( m_Enumerable.m_Modifier( this, 0, ModifyType::Dereference ) );
 		}
 
 		inline bool operator==( const Iterator& a_Iterator ) const
@@ -135,7 +133,7 @@ public:
 
 		inline bool operator!=( const Iterator& a_Iterator ) const
 		{
-			return false; // !m_Enumerable.m_IteratorEqual( m_Iterator, a_Iterator.m_Iterator );
+			return !m_Enumerable.m_Comparer( m_Iterator, a_Iterator.m_Iterator, m_Enumerable, CompareType::Equality );
 		}
 
 	private:
@@ -146,148 +144,11 @@ public:
 		void*            m_Iterator;
 	};
 
-	using CIterator = const Iterator;
-
-	/*class CIterator
-	{
-	public:
-
-		using iterator_category = random_access_iterator_tag;
-		using difference_type = ptrdiff_t;
-		using value_type = T;
-		using pointer = value_type*;
-		using reference = value_type&;
-
-	private:
-
-		Iterator( const Enumerable< T >& a_Enumerable, const void* a_Iterator )
-			: m_Enumerable( a_Enumerable )
-			, m_Iterator( a_Iterator )
-		{
-		}
-
-	public:
-
-		CIterator( const Iterator& a_Iterator )
-			: m_Enumerable( a_Iterator.m_Enumerable )
-		{
-			void* New;
-			m_Enumerable.m_Create( a_Iterator.m_Iterator, New );
-			m_Iterator = New;
-		}
-
-		CIterator( const Iterator&& a_Iterator )
-			: m_Enumerable( a_Iterator.m_Enumerable )
-		{
-			void* New;
-			m_Enumerable.m_Create( a_Iterator.m_Iterator, New );
-			m_Iterator = New;
-		}
-
-		~CIterator()
-		{
-			m_Enumerable.m_Delete( m_Iterator );
-		}
-
-		inline Iterator& operator++()
-		{
-			m_Enumerable.m_Increment( *this );
-			return *this;
-		}
-
-		inline Iterator operator++( int )
-		{
-			void* New;
-			m_Enumerable.m_Create( m_Iterator, New );
-			Iterator Temp( m_Enumerable, New );
-			m_Enumerable.m_Increment( *this );
-			return Temp;
-		}
-
-		inline Iterator& operator--()
-		{
-			m_Enumerable.m_Decrement( *this );
-			return *this;
-		}
-
-		inline Iterator operator--( int )
-		{
-			void* New;
-			m_Enumerable.m_Create( m_Iterator, New );
-			Iterator Temp( m_Enumerable, New );
-			m_Enumerable.m_Decrement( *this );
-			return Temp;
-		}
-
-		inline Iterator& operator+=( int a_Places )
-		{
-			return m_Enumerable.m_Shift( *this, a_Places );
-		}
-
-		inline Iterator& operator-=( int a_Places )
-		{
-			return m_Enumerable.m_Shift( *this, a_Places );
-		}
-
-		inline Iterator operator+( int a_Places )
-		{
-			void* New;
-			m_Enumerable.m_Create( m_Iterator, New );
-			Iterator Temp( m_Enumerable, New );
-			m_Enumerable.m_Shift( Temp, a_Places );
-			return Temp;
-		}
-
-		inline Iterator operator-( int a_Places )
-		{
-			void* New;
-			m_Enumerable.m_Create( m_Iterator, New );
-			Iterator Temp( m_Enumerable, New );
-			m_Enumerable.m_Shift( Temp, -a_Places );
-			return Temp;
-		}
-
-		inline int operator-( Iterator a_Iterator )
-		{
-			int num0 = m_Enumerable.m_Dereference( *this );
-			int num1 = m_Enumerable.m_Dereference( a_Iterator );
-			return m_Enumerable.m_Difference( m_Iterator, a_Iterator.m_Iterator, m_Enumerable );
-		}
-
-		inline T& operator*()
-		{
-			return m_Enumerable.m_Dereference( *this );
-		}
-
-		inline T* operator->()
-		{
-			return m_Enumerable.m_Dereference( *this );
-		}
-
-		inline bool operator==( const Iterator& a_Iterator ) const
-		{
-			return m_Enumerable.m_IteratorEqual( m_Iterator, a_Iterator.m_Iterator );
-		}
-
-		inline bool operator!=( const Iterator& a_Iterator ) const
-		{
-			return !m_Enumerable.m_IteratorEqual( m_Iterator, a_Iterator.m_Iterator );
-		}
-
-	private:
-
-		friend class Enumerable< T >;
-
-		Enumerable< T >& m_Enumerable;
-		void* m_Iterator;
-	};*/
-
 	template < typename Iter, typename = EnableIfCompatible< Iter > >
 	Enumerable( Iter a_Begin, Iter a_End )
 		: m_Begin( new Iter( a_Begin ) )
 		, m_End( new Iter( a_End ) )
 		, m_Size( distance( a_Begin, a_End ) )
-		, m_ConstModifier( nullptr )
 		, m_Modifier( Modifier< Iter > )
 		, m_Comparer( Comparer< Iter > )
 	{ }
@@ -296,18 +157,18 @@ public:
 	{
 		Iterator Begin( *this, m_Begin );
 		Iterator End  ( *this, m_End );
-		m_Modifier( Begin, 0, ModifyType::Delete );
-		m_Modifier( End,   0, ModifyType::Delete );
+		m_Modifier( &Begin, 0, ModifyType::Delete );
+		m_Modifier( &End,   0, ModifyType::Delete );
 	}
 
 	inline Iterator Begin()
 	{
-		return Iterator( Iterator( *this, m_Begin ) );
+		return Iterator( *this, m_Modifier( m_Begin, 0, ModifyType::Create ) );
 	}
 
 	inline Iterator End()
 	{
-		return Iterator( Iterator( *this, m_End ) );
+		return Iterator( *this, m_Modifier( m_End, 0, ModifyType::Create ) );
 	}
 
 	inline size_t Size() const
@@ -315,163 +176,53 @@ public:
 		return m_Size;
 	}
 
-	/*template < typename U >
-	static void Increment( Iterator& a_Iterator )
-	{
-		++*reinterpret_cast< U* >( a_Iterator.m_Iterator );
-	}
-
-	template < typename U >
-	static void Decrement( Iterator& a_Iterator )
-	{
-		if constexpr ( _Is_bidi_iter_v< U > )
-		{
-			--*reinterpret_cast< U* >( a_Iterator.m_Iterator );
-		}
-		else
-		{
-			auto Distance = distance( *reinterpret_cast< U* >( a_Iterator.m_Enumerable.m_Begin ), *reinterpret_cast< U* >( a_Iterator.m_Iterator ) );
-			*reinterpret_cast< U* >( a_Iterator.m_Iterator ) = *reinterpret_cast< U* >( a_Iterator.m_Enumerable.m_Begin );
-			while ( Distance-- > 1 ) ++*reinterpret_cast< U* >( a_Iterator.m_Iterator );
-		}
-	}
-
-	template < typename U >
-	static void Shift( Iterator& a_Iterator, int a_Places )
-	{
-		if ( !a_Places )
-		{
-			return;
-		}
-
-		if constexpr ( _Is_random_iter_v< U > )
-		{
-			*reinterpret_cast< U* >( a_Iterator.m_Iterator ) += a_Places;
-		}
-		else
-		{
-			if ( a_Places < 0 )
-			{
-				auto Distance = distance( *reinterpret_cast< U* >( a_Iterator.m_Enumerable.m_Begin ), *reinterpret_cast< U* >( a_Iterator.m_Iterator ) );
-				*reinterpret_cast< U* >( a_Iterator.m_Iterator ) = *reinterpret_cast< U* >( a_Iterator.m_Enumerable.m_Begin );
-				while ( Distance-- > -a_Places ) ++*reinterpret_cast< U* >( a_Iterator.m_Iterator );
-			}
-			else
-			{
-				for ( ; a_Places > 0; --a_Places ) ++(*reinterpret_cast< U* >( a_Iterator.m_Iterator ));
-			}
-		}
-	}
-
-	template < typename U >
-	static void Create( void* a_Iterator, void*& o_NewIterator )
-	{
-		o_NewIterator = new U( *reinterpret_cast< U* >( a_Iterator ) );
-	}
-
-	template < typename U >
-	static void Delete( void* a_Iterator )
-	{
-		delete reinterpret_cast< U* >( a_Iterator );
-	}
-
-	template < typename U >
-	static T& Dereference( Iterator& a_Iterator )
-	{
-		return **reinterpret_cast< U* >( a_Iterator.m_Iterator );
-	}
-
-	template < typename U >
-	static int Difference( void* a_Left, void* a_Right, const Enumerable< T >& a_Enumerable )
-	{
-		U& Left = *reinterpret_cast< U* >( a_Left );
-		const U& Right = *reinterpret_cast< U* >( a_Right );
-
-		if ( Left == Right )
-		{
-			return 0;
-		}
-
-		if constexpr ( _Is_random_iter_v< U > )
-		{
-			return Right - Left;
-		}
-		else
-		{
-			int Length = 0;
-			const U& End = *reinterpret_cast< const U* >( a_Enumerable.m_End );
-			for ( ; Left != Right && Left != End; ++Left, ++Length );
-
-			if ( Left == Right )
-			{
-				return -Length;
-			}
-
-			for ( Left = *reinterpret_cast< U* >( a_Enumerable.m_Begin ); Left != Right; ++Left, ++Length );
-
-			return a_Enumerable.m_Size - Length;
-		}
-	}
-
-	template < typename U >
-	static bool IteratorEqual( const void* a_IteratorA, const void* a_IteratorB )
-	{
-		return *reinterpret_cast< const U* >( a_IteratorA ) == *reinterpret_cast< const U* >( a_IteratorB );
-	}*/
-
-
+private:
 
 	template < typename Iter >
-	static void* Modifier( Iterator& a_Iterator, int a_Value, ModifyType a_ModifyType )
+	static void* Modifier( void* a_Iterator, int a_Value, ModifyType a_ModifyType )
 	{
 		switch ( a_ModifyType )
 		{
 		case ModifyType::Create:
 		{
-			return new Iter( *reinterpret_cast< Iter* >( a_Iterator.m_Iterator ) );
+			return new Iter( *reinterpret_cast< Iter* >( a_Iterator ) );
 		}
 		case ModifyType::Delete:
 		{
-			delete reinterpret_cast< Iter* >( a_Iterator.m_Iterator );
+			delete reinterpret_cast< Iter* >( a_Iterator );
 			return nullptr;
 		}
 		case ModifyType::Shift:
 		{
 			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
 			{
-				Iter& iter0 = *reinterpret_cast< Iter* >( a_Iterator.m_Iterator );
-				advance( *reinterpret_cast< Iter* >( a_Iterator.m_Iterator ), a_Value );
-
-				Iter& iter = *reinterpret_cast< Iter* >( a_Iterator.m_Iterator );
-
-				auto val = *iter;
-
-				return &a_Iterator;
+				advance( *reinterpret_cast< Iter* >( reinterpret_cast< Iterator* >( a_Iterator )->m_Iterator ), a_Value );
+				return a_Iterator;
 			}
 
 			if ( !a_Value )
 			{
-				return &a_Iterator;
+				return a_Iterator;
 			}
 			else if ( a_Value > 0 )
 			{
-				Iter& Subject = *reinterpret_cast< Iter* >( a_Iterator.m_Iterator );
+				Iter& Subject = *reinterpret_cast< Iter* >( reinterpret_cast< Iterator* >( a_Iterator )->m_Iterator );
 				for ( ; a_Value > 0; --a_Value ) ++Subject;
-				return &a_Iterator;
+				return a_Iterator;
 			}
 			else if ( a_Value < 0 )
 			{
-				const Iter& Begin = *reinterpret_cast< Iter* >( a_Iterator.m_Enumerable.m_Begin );
-				Iter& Subject = *reinterpret_cast< Iter* >( a_Iterator.m_Iterator );
+				const Iter& Begin = *reinterpret_cast< Iter* >( reinterpret_cast< Iterator* >( a_Iterator )->m_Enumerable.m_Begin );
+				Iter& Subject = *reinterpret_cast< Iter* >( reinterpret_cast< Iterator* >( a_Iterator )->m_Iterator );
 				auto Distance = distance( Begin, Subject );
 				Subject = Begin;
 				while ( --Distance > static_cast< decltype( Distance ) >( -a_Value - 1 ) ) ++Subject;
-				return &a_Iterator;
+				return a_Iterator;
 			}
 		}
 		case ModifyType::Dereference:
 		{
-			auto& iter = *reinterpret_cast< Iter* >( a_Iterator.m_Iterator );
+			auto& iter = *reinterpret_cast< Iter* >( reinterpret_cast< Iterator* >( a_Iterator )->m_Iterator );
 			auto& val = *iter;
 			return &val;
 		}
@@ -534,24 +285,6 @@ public:
 	void*  m_End;
 	size_t m_Size;
 
-	//void( *m_Create    )( void*, void*& );
-	//void( *m_Delete    )( void* );
-	////void*(*m_CreateOrDelete)(Iterator&, int[NotUsed])
-	//void( *m_Increment )( Iterator& );
-	//void( *m_Decrement )( Iterator& );
-	//void( *m_Shift     )( Iterator&, int ); //void*[Iterator&](Iterator&,int)
-	//T&  ( *m_Dereference )( Iterator& ); //void*[T&](Iterator&,int[NotUsed])
-
-	//int ( *m_Difference  )( void* a_Left, void* a_Right, const Enumerable< T >& );// int(const void*, const void*, const Enumerable< T >&, CompareType)
-	//bool( *m_IteratorEqual   )( const void*, const void* ); //int[bool](const void*, const void*, const Enumerable< T >&[NotUsed], CompareType)
-	//bool( *m_IteratorLesser  )( const void*, const void* ); //int[bool](const void*, const void*, const Enumerable< T >&[NotUsed], CompareType)
-	//bool( *m_IteratorGreater )( const void*, const void* ); //int[bool](const void*, const void*, const Enumerable< T >&[NotUsed], CompareType)
-
-	const void*( *m_ConstModifier )( CIterator&, int, ModifyType );
-	void*      ( *m_Modifier      )( Iterator&,  int, ModifyType );
-	int        ( *m_Comparer      )( const void*, const void*, const Enumerable< T >&, CompareType );
-	 
-	// void*(Iterator&, int, ModifyType)
-	// const void*(const Iterator&, int, ModifyType) const
-	// int(const void*, const void*, const Enumerable< T >&, CompareType) const
+	void* ( *m_Modifier )( void*, int, ModifyType );
+	int   ( *m_Comparer )( const void*, const void*, const Enumerable< T >&, CompareType );
 };

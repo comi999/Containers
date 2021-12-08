@@ -117,19 +117,4 @@ int main()
     Cont< int > cont;
     
     Enumerable< int > e( a.Begin(), a.End() );
-    auto iterBegin = e.Begin();
-    auto iterBeginVal = *iterBegin;
-    iterBeginVal = *e.Begin();
-    auto iterEnd = e.End();
-    auto iterEndVal = *( e.End() - 1 );
-
-    auto res3 = *iterBegin;
-    auto res2 = *( iterBegin += 1 );
-
-    auto res0 = ( iterBegin + 5 );
-    auto res1 = ( iterEnd - 1 );
-    auto val0 = *res0;
-    auto val1 = *res1;
-
-    auto dist = res1 - res0;
 }
