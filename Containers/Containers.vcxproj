@@ -149,6 +149,9 @@
     <ClInclude Include="Invoker.hpp" />
     <ClInclude Include="Reference.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="Enumerable.natvis" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -5,6 +5,7 @@
 #include <queue>
 #include <list>
 #include "Delegate.hpp"
+#include <map>
 
 using namespace std;
 
@@ -115,6 +116,21 @@ int main()
     Array< int > c = { 4, 5, 6, 7 };
 
     Cont< int > cont;
-    
-    Enumerable< int > e( a.Begin(), a.End() );
+
+    Enumerable< int > e( cont.Begin(), cont.End() );
+
+    auto beg = e.RBegin();
+    auto end = e.REnd();
+
+    Enumerable< int >::Iterator iter( beg );
+    end = beg;
+    auto val = *end;
+
+    vector< int > v = { 1, 2, 3, 4, 5 };
+
+    for ( auto iter = e.RBegin(); iter != e.REnd(); ++iter )
+    {
+        cout << *iter << endl;
+    }
+
 }

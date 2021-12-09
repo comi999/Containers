@@ -39,4 +39,7 @@
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="Enumerable.natvis" />
+  </ItemGroup>
 </Project>
