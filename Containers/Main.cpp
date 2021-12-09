@@ -119,18 +119,16 @@ int main()
 
     Enumerable< int > e( cont.Begin(), cont.End() );
 
-    auto beg = e.RBegin();
-    auto end = e.REnd();
+    auto beg = e.Begin();
+    auto end = e.End();
 
-    Enumerable< int >::Iterator iter( beg );
-    end = beg;
-    auto val = *end;
 
-    vector< int > v = { 1, 2, 3, 4, 5 };
+    auto val0 = *beg;
+    auto val1 = *( end - 1 );
 
-    for ( auto iter = e.RBegin(); iter != e.REnd(); ++iter )
+
+    for ( auto iter = e.End() - 1; iter != e.Begin(); --iter )
     {
         cout << *iter << endl;
     }
-
 }
