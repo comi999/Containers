@@ -21,6 +21,8 @@ struct Cont
         using pointer = value_type*;
         using reference = value_type&;
 
+        iterator() = default;
+
         iterator( T* elem )
         {
             element = elem;
@@ -117,18 +119,41 @@ int main()
 
     Cont< int > cont;
 
-    Enumerable< int > e( cont.Begin(), cont.End() );
+    map< int, int > m;
+
+    for ( int i = 0; i < 10; ++i )
+    {
+        m.emplace( make_pair( i, i ) );
+    }
+
+    
+
+    Enumerable< pair< const int, int > > e( m.begin(), m.end() );
 
     auto beg = e.Begin();
     auto end = e.End();
+    auto rbeg = e.RBegin();
+    auto rend = e.REnd();
 
+    for ( rend -= 1; rbeg != rend; --rend )
+    {
+        cout << (*rend ).first << ":" << (*rend ).second << endl;
+        cout << rend - rbeg << endl;
+    }
 
-    auto val0 = *beg;
-    auto val1 = *( end - 1 );
+    auto distance = rend - rbeg;
 
+    auto rval0 = *rbeg;
+    auto rval1 = *rend;
 
-    for ( auto iter = e.End() - 1; iter != e.Begin(); --iter )
+    /*using RIt = Enumerable< int >::RIterator;
+    auto iter = RIt( e.Begin() ) - 1;
+    auto iterE = RIt( e.End() );
+    auto iterVal = *iter;
+    auto iterEVal = *iterE;
+
+    for ( ; iter != iterE; --iter )
     {
         cout << *iter << endl;
-    }
+    }*/
 }

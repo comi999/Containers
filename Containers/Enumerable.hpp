@@ -12,19 +12,30 @@ class Enumerable
 
 	enum class OperatorType : char
 	{
-		Create,
-		Delete,
-		RShift,
+		FClone,
+		RClone,
+		FConvert,
+		RConvert,
+		FDelete,
+		RDelete,
+		FBegin,
+		RBegin,
+		FEnd,
+		REnd,
 		FShift,
-		Dereference,
-		RDistance,
+		RShift,
+		FDereference,
+		RDereference,
 		FDistance,
-		Equality,
+		RDistance,
+		FEquality,
+		REquality,
 		FGreaterEqual,
 		RGreaterEqual,
 		FLesserEqual,
 		RLesserEqual,
-		Assign
+		FAssign,
+		RAssign
 	};
 
 public:
@@ -52,27 +63,27 @@ public:
 
 		Iterator( Iterator& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
-			, m_Iterator( m_Enumerable->m_Operator( a_Iterator.m_Iterator, 0, 0, OperatorType::Create ) )
+			, m_Iterator( m_Enumerable->m_Operator( a_Iterator.m_Iterator, 0, 0, OperatorType::FClone ) )
 		{ }
 
 		Iterator( Iterator&& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
-			, m_Iterator( a_Iterator.m_Iterator )
+			, m_Iterator( m_Enumerable->m_Operator( a_Iterator.m_Iterator, 0, 0, OperatorType::FClone ) )
 		{ }
 
 		Iterator( RIterator& a_RIterator )
 			: m_Enumerable( a_RIterator.m_Enumerable )
-			, m_Iterator( m_Enumerable->m_Operator( a_RIterator.m_Iterator, 0, 0, OperatorType::Create ) )
-		{ }
-		
-		Iterator( RIterator&& a_RIterator )
-			: m_Enumerable( a_RIterator.m_Enumerable )
-			, m_Iterator( a_RIterator.m_Iterator )
+			, m_Iterator( m_Enumerable->m_Operator( a_RIterator.m_Iterator, 0, m_Enumerable, OperatorType::FConvert ) )
 		{ }
 
+		Iterator( RIterator&& a_RIterator )
+			: m_Enumerable( a_RIterator.m_Enumerable )
+			, m_Iterator( m_Enumerable->m_Operator( a_RIterator.m_Iterator, 0, m_Enumerable, OperatorType::FConvert ) )
+		{ }
+		
 		~Iterator()
 		{
-			m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::Delete );
+			m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDelete );
 		}
 
 		inline Iterator& operator++()
@@ -83,7 +94,7 @@ public:
 
 		inline Iterator operator++( int )
 		{
-			void* New = m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::Create );
+			void* New = m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FClone );
 			m_Enumerable->m_Operator( m_Iterator, reinterpret_cast< void* >( 1 ), m_Enumerable, OperatorType::FShift );
 			return Iterator( m_Enumerable, New );
 		}
@@ -96,7 +107,7 @@ public:
 
 		inline Iterator operator--( int )
 		{
-			void* New = m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::Create );
+			void* New = m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FClone );
 			m_Enumerable->m_Operator( m_Iterator, reinterpret_cast< void* >( -1 ), m_Enumerable, OperatorType::FShift );
 			return Iterator( m_Enumerable, New );
 		}
@@ -115,58 +126,59 @@ public:
 
 		inline Iterator operator+( int a_Places ) const
 		{
-			void* New = m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::Create );
+			void* New = m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FClone );
 			return Iterator( m_Enumerable, m_Enumerable->m_Operator( New, reinterpret_cast< void* >( a_Places ), m_Enumerable, OperatorType::FShift ) );
 		}
 
 		inline Iterator operator-( int a_Places ) const
 		{
-			void* New = m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::Create );
+			void* New = m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FClone );
 			return Iterator( m_Enumerable, m_Enumerable->m_Operator( New, reinterpret_cast< void* >( -a_Places ), m_Enumerable, OperatorType::FShift ) );
 		}
 
 		inline int operator-( const Iterator& a_Iterator ) const
 		{
+			_STL_ASSERT( m_Enumerable->m_Operator == a_Iterator.m_Enumerable->m_Operator, "Iterators are different types." );
 			return reinterpret_cast< int >( m_Enumerable->m_Operator( m_Iterator, a_Iterator.m_Iterator, m_Enumerable, OperatorType::FDistance ) );
 		}
 		
 		inline Iterator& operator=( Iterator& a_Iterator )
 		{
 			_STL_ASSERT( m_Enumerable->m_Operator == a_Iterator.m_Enumerable->m_Operator, "Iterators are different types." );
-			m_Enumerable->m_Operator( m_Iterator, a_Iterator.m_Iterator, 0, OperatorType::Assign );
+			m_Enumerable->m_Operator( m_Iterator, a_Iterator.m_Iterator, 0, OperatorType::FAssign );
 			return *this;
 		}
 
 		inline T& operator*()
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::Dereference ) );
+			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
 		}
 
 		inline const T& operator*() const
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::Dereference ) );
+			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
 		}
 
 		inline T* operator->()
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::Dereference ) );
+			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
 		}
 
 		inline const T* operator->() const
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::Dereference ) );
+			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
 		}
 
 		inline bool operator==( const Iterator& a_Iterator ) const
 		{
 			_STL_ASSERT( m_Enumerable->m_Operator == a_Iterator.m_Enumerable->m_Operator, "Iterators are different types." );
-			return m_Enumerable->m_Operator( m_Iterator, a_Iterator.m_Iterator, 0, OperatorType::Equality );
+			return m_Enumerable->m_Operator( m_Iterator, a_Iterator.m_Iterator, 0, OperatorType::FEquality );
 		}
 
 		inline bool operator!=( const Iterator& a_Iterator ) const
 		{
 			_STL_ASSERT( m_Enumerable->m_Operator == a_Iterator.m_Enumerable->m_Operator, "Iterators are different types." );
-			return !m_Enumerable->m_Operator( m_Iterator, a_Iterator.m_Iterator, 0, OperatorType::Equality );
+			return !m_Enumerable->m_Operator( m_Iterator, a_Iterator.m_Iterator, 0, OperatorType::FEquality );
 		}
 
 		inline bool operator>( const Iterator& a_Iterator ) const
@@ -205,7 +217,7 @@ public:
 
 	};
 
-	class RIterator : private Iterator
+	class RIterator
 	{
 	public:
 
@@ -218,145 +230,156 @@ public:
 	private:
 
 		RIterator( Enumerable< T >* a_Enumerable, void* a_Iterator )
-			: Iterator( a_Enumerable, a_Iterator )
+			: m_Enumerable( a_Enumerable )
+			, m_Iterator( a_Iterator )
 		{ }
 
 	public:
 
-		RIterator( Iterator& a_Iterator )//Should this offset in negative direction by 1?
-			: Iterator( a_Iterator )
+		RIterator( Iterator& a_Iterator )
+			: m_Enumerable( a_Iterator.m_Enumerable )
+			, m_Iterator( m_Enumerable->m_Operator( a_Iterator.m_Iterator, 0, m_Enumerable, OperatorType::RConvert ) )
 		{ }
 
 		RIterator( Iterator&& a_Iterator )
-			: Iterator( a_Iterator )
+			: m_Enumerable( a_Iterator.m_Enumerable )
+			, m_Iterator( m_Enumerable->m_Operator( a_Iterator.m_Iterator, 0, m_Enumerable, OperatorType::RConvert ) )
 		{ }
 
 		RIterator( RIterator& a_RIterator )
-			: Iterator( a_RIterator )
+			: m_Enumerable( a_RIterator.m_Enumerable )
+			, m_Iterator( m_Operator( a_RIterator.m_Iterator, 0, 0, OperatorType::RClone ) )
 		{ }
 
 		RIterator( RIterator&& a_RIterator )
-			: Iterator( a_RIterator )
+			: m_Enumerable( a_RIterator.m_Enumerable )
+			, m_Iterator( m_Operator( a_RIterator.m_Iterator, 0, 0, OperatorType::RClone ) )
 		{ }
+
+		~RIterator()
+		{
+			m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDelete );
+		}
 
 		inline RIterator& operator++()
 		{
-			Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, reinterpret_cast< void* >( 1 ), Iterator::m_Enumerable, OperatorType::RShift );
+			m_Enumerable->m_Operator( m_Iterator, reinterpret_cast< void* >( 1 ), m_Enumerable, OperatorType::RShift );
 			return *this;
 		}
 
 		inline RIterator operator++( int )
 		{
-			void* New = Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, 0, 0, OperatorType::Create );
-			Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, reinterpret_cast< void* >( 1 ), Iterator::m_Enumerable, OperatorType::RShift );
-			return RIterator( Iterator::m_Enumerable, New );
+			void* New = m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RClone );
+			m_Enumerable->m_Operator( m_Iterator, reinterpret_cast< void* >( 1 ), m_Enumerable, OperatorType::RShift );
+			return RIterator( m_Enumerable, New );
 		}
 
 		inline RIterator& operator--()
 		{
-			Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, reinterpret_cast< void* >( -1 ), Iterator::m_Enumerable, OperatorType::RShift );
+			m_Enumerable->m_Operator( m_Iterator, reinterpret_cast< void* >( -1 ), m_Enumerable, OperatorType::RShift );
 			return *this;
 		}
 
 		inline RIterator operator--( int )
 		{
-			void* New = Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, 0, 0, OperatorType::Create );
-			Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, reinterpret_cast< void* >( -1 ), Iterator::m_Enumerable, OperatorType::RShift );
-			return RIterator( Iterator::m_Enumerable, New );
+			void* New = m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RClone );
+			m_Enumerable->m_Operator( m_Iterator, reinterpret_cast< void* >( -1 ), m_Enumerable, OperatorType::RShift );
+			return RIterator( m_Enumerable, New );
 		}
 
 		inline RIterator& operator+=( int a_Places )
 		{
-			Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, reinterpret_cast< void* >( a_Places ), Iterator::m_Enumerable, OperatorType::RShift );
+			m_Enumerable->m_Operator( m_Iterator, reinterpret_cast< void* >( a_Places ), m_Enumerable, OperatorType::RShift );
 			return *this;
 		}
 
 		inline RIterator& operator-=( int a_Places )
 		{
-			Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, reinterpret_cast< void* >( -a_Places ), Iterator::m_Enumerable, OperatorType::RShift );
+			m_Enumerable->m_Operator( m_Iterator, reinterpret_cast< void* >( -a_Places ), m_Enumerable, OperatorType::RShift );
 			return *this;
 		}
 
 		inline RIterator operator+( int a_Places ) const
 		{
-			void* New = Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, 0, 0, OperatorType::Create );
-			return RIterator( Iterator::m_Enumerable, Iterator::m_Enumerable->m_Operator( New, reinterpret_cast< void* >( a_Places ), Iterator::m_Enumerable, OperatorType::RShift ) );
+			void* New = m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RClone );
+			return RIterator( m_Enumerable, m_Enumerable->m_Operator( New, reinterpret_cast< void* >( a_Places ), m_Enumerable, OperatorType::RShift ) );
 		}
 
 		inline RIterator operator-( int a_Places ) const
 		{
-			void* New = Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, 0, 0, OperatorType::Create );
-			return RIterator( Iterator::m_Enumerable, Iterator::m_Enumerable->m_Operator( New, reinterpret_cast< void* >( -a_Places ), Iterator::m_Enumerable, OperatorType::RShift ) );
+			void* New = m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RClone );
+			return RIterator( m_Enumerable, m_Enumerable->m_Operator( New, reinterpret_cast< void* >( -a_Places ), m_Enumerable, OperatorType::RShift ) );
 		}
 
 		inline int operator-( const RIterator& a_RIterator ) const
 		{
-			return reinterpret_cast< int >( Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, a_RIterator.m_Iterator, Iterator::m_Enumerable, OperatorType::FDistance ) );
+			_STL_ASSERT( m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
+			return reinterpret_cast< int >( m_Enumerable->m_Operator( m_Iterator, a_RIterator.m_Iterator, m_Enumerable, OperatorType::RDistance ) );
 		}
 
 		inline RIterator& operator=( RIterator& a_RIterator )
 		{
-			_STL_ASSERT( Iterator::m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
-			Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, a_RIterator.m_Iterator, 0, OperatorType::Assign );
+			_STL_ASSERT( m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
+			m_Enumerable->m_Operator( m_Iterator, a_RIterator.m_Iterator, 0, OperatorType::RAssign );
 			return *this;
 		}
 
 		inline T& operator*()
 		{
-			return *reinterpret_cast< T* >( Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, 0, 0, OperatorType::Dereference ) );
+			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
 		}
 
 		inline const T& operator*() const
 		{
-			return *reinterpret_cast< T* >( Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, 0, 0, OperatorType::Dereference ) );
+			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
 		}
 
 		inline T* operator->()
 		{
-			return *reinterpret_cast< T* >( Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, 0, 0, OperatorType::Dereference ) );
+			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
 		}
 
 		inline const T* operator->() const
 		{
-			return *reinterpret_cast< T* >( Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, 0, 0, OperatorType::Dereference ) );
+			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
 		}
 
 		inline bool operator==( const RIterator& a_RIterator ) const
 		{
-			_STL_ASSERT( Iterator::m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
-			return Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, a_RIterator.m_Iterator, 0, OperatorType::Equality );
+			_STL_ASSERT( m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
+			return m_Enumerable->m_Operator( m_Iterator, a_RIterator.m_Iterator, 0, OperatorType::REquality );
 		}
 
 		inline bool operator!=( const RIterator& a_RIterator ) const
 		{
-			_STL_ASSERT( Iterator::m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
-			return !Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, a_RIterator.m_Iterator, 0, OperatorType::Equality );
+			_STL_ASSERT( m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
+			return !m_Enumerable->m_Operator( m_Iterator, a_RIterator.m_Iterator, 0, OperatorType::REquality );
 		}
 
 		inline bool operator>( const RIterator& a_RIterator ) const
 		{
-			_STL_ASSERT( Iterator::m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
-			return Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, a_RIterator.m_Iterator, Iterator::m_Enumerable, OperatorType::RGreaterEqual )
+			_STL_ASSERT( m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
+			return m_Enumerable->m_Operator( m_Iterator, a_RIterator.m_Iterator, m_Enumerable, OperatorType::RGreaterEqual )
 				== reinterpret_cast< void* >( 2 );
 		}
 
 		inline bool operator>=( const RIterator& a_RIterator ) const
 		{
-			_STL_ASSERT( Iterator::m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
-			return Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, a_RIterator.m_Iterator, Iterator::m_Enumerable, OperatorType::RGreaterEqual );
+			_STL_ASSERT( m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
+			return m_Enumerable->m_Operator( m_Iterator, a_RIterator.m_Iterator, m_Enumerable, OperatorType::RGreaterEqual );
 		}
 
 		inline bool operator<( const RIterator& a_RIterator ) const
 		{
-			_STL_ASSERT( Iterator::m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
-			return Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, a_RIterator.m_Iterator, Iterator::m_Enumerable, OperatorType::RLesserEqual )
+			_STL_ASSERT( m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
+			return m_Enumerable->m_Operator( m_Iterator, a_RIterator.m_Iterator, m_Enumerable, OperatorType::RLesserEqual )
 				== reinterpret_cast< void* >( 2 );
 		}
 
 		inline bool operator<=( const RIterator& a_RIterator ) const
 		{
-			_STL_ASSERT( Iterator::m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
-			return Iterator::m_Enumerable->m_Operator( Iterator::m_Iterator, a_RIterator.m_Iterator, Iterator::m_Enumerable, OperatorType::RLesserEqual );
+			_STL_ASSERT( m_Enumerable->m_Operator == a_RIterator.m_Enumerable->m_Operator, "Iterators are different types." );
+			return m_Enumerable->m_Operator( m_Iterator, a_RIterator.m_Iterator, m_Enumerable, OperatorType::RLesserEqual );
 		}
 
 	private:
@@ -364,6 +387,8 @@ public:
 		friend class Enumerable< T >;
 		friend class Enumerable< T >::Iterator;
 
+		Enumerable< T >* m_Enumerable;
+		void* m_Iterator;
 	};
 
 	class CIterator : private Iterator
@@ -513,70 +538,48 @@ public:
 
 	~Enumerable()
 	{
-		m_Operator( m_Begin, 0, 0, OperatorType::Delete );
-		m_Operator( m_End,   0, 0, OperatorType::Delete );
+		m_Operator( m_Begin, 0, 0, OperatorType::FDelete );
+		m_Operator( m_End,   0, 0, OperatorType::FDelete );
 	}
 
 	inline Iterator Begin()
 	{
-		return Iterator( this, m_Operator( m_Begin, 0, 0, OperatorType::Create ) );
+		return Iterator( this, m_Operator( 0, 0, this, OperatorType::FBegin ) );
 	}
 
 	inline const Iterator Begin() const
 	{
-		return Iterator( this, m_Operator( m_Begin, 0, 0, OperatorType::Create ) );
+		return Iterator( this, m_Operator( 0, 0, this, OperatorType::FBegin ) );
 	}
 
 	inline RIterator RBegin()
 	{
-		void* New = m_Operator( m_End, 0, 0, OperatorType::Create );
-		m_Operator( New, reinterpret_cast< void* >( -1 ), this, OperatorType::FShift );
-		return RIterator( this, New );
+		return RIterator( this, m_Operator( 0, 0, this, OperatorType::RBegin ) );
 	}
 
 	inline const RIterator RBegin() const
 	{
-		return RIterator( this, m_Operator( m_End, 0, 0, OperatorType::Create ) ) + 1;
-	}
-
-	inline CIterator CBegin()
-	{
-		return CIterator( this, m_Operator( m_Begin, 0, 0, OperatorType::Create ) );
-	}
-
-	inline const CIterator CBegin() const
-	{
-		return CIterator( this, m_Operator( m_Begin, 0, 0, OperatorType::Create ) );
+		return RIterator( this, m_Operator( 0, 0, this, OperatorType::RBegin ) );
 	}
 
 	inline Iterator End()
 	{
-		return Iterator( this, m_Operator( m_End, 0, 0, OperatorType::Create ) );
+		return Iterator( this, m_Operator( 0, 0, this, OperatorType::FEnd ) );
 	}
 
 	inline const Iterator End() const
 	{
-		return Iterator( this, m_Operator( m_End, 0, 0, OperatorType::Create ) );
+		return Iterator( this, m_Operator( 0, 0, this, OperatorType::FEnd ) );
 	}
 
 	inline RIterator REnd()
 	{
-		return RIterator( this, m_Operator( m_End, 0, 0, OperatorType::Create ) );
+		return RIterator( this, m_Operator( 0, 0, this, OperatorType::REnd ) );
 	}
 
 	inline const RIterator REnd() const
 	{
-		return RIterator( this, m_Operator( m_End, 0, 0, OperatorType::Create ) );
-	}
-
-	inline CIterator CEnd()
-	{
-		return CIterator( this, m_Operator( m_End, 0, 0, OperatorType::Create ) );
-	}
-
-	inline const CIterator CEnd() const
-	{
-		return CIterator( this, m_Operator( m_End, 0, 0, OperatorType::Create ) );
+		return RIterator( this, m_Operator( 0, 0, this, OperatorType::REnd ) );
 	}
 
 	inline size_t Size() const
@@ -591,14 +594,152 @@ private:
 	{
 		switch ( a_OperatorType )
 		{
-		case OperatorType::Create:
+		case OperatorType::FClone:
 		{
 			return new Iter( *reinterpret_cast< Iter* >( a_ValueA ) );
 		}
-		case OperatorType::Delete:
+		case OperatorType::RClone:
+		{
+			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
+			{
+				return new reverse_iterator< Iter >( *reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA ) );
+			}
+
+			return new Iter( *reinterpret_cast< Iter* >( a_ValueA ) );
+		}
+		case OperatorType::FConvert:
+		{
+			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
+			{
+				auto* Old = reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA );
+				Iter* New = new Iter( Old->base() );
+				++*New;
+				return New;
+			}
+
+			Iter& Old = *reinterpret_cast< Iter* >( a_ValueA );
+			Iter& New = *( new Iter( Old ) );
+
+			if ( Old == *reinterpret_cast< Iter* >( a_Enumerable->m_End ) )
+			{
+				New = *reinterpret_cast< Iter* >( a_Enumerable->m_Begin );;
+				return &New;
+			}
+
+			New = Old;
+			return &++New;
+		}
+		case OperatorType::RConvert:
+		{
+			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
+			{
+				Iter* Old = reinterpret_cast< Iter* >( a_ValueA );
+				auto* New = new reverse_iterator< Iter >( make_reverse_iterator( *Old ) );
+				++*New;
+				return New;
+			}
+
+			Iter& Old = *reinterpret_cast< Iter* >( a_ValueA );
+			Iter& New = *( new Iter( Old ) );
+			Iter& Beg = *reinterpret_cast< Iter* >( a_Enumerable->m_Begin );
+
+			if ( Old == Beg )
+			{
+				New = *reinterpret_cast< Iter* >( a_Enumerable->m_End );
+				return &New;
+			}
+
+			Iter Guard = Beg;
+			Iter Marker = Guard++;
+			for ( ; Guard != New; ++Guard, ++Marker );
+			New = Marker;
+			return &New;
+		}
+		case OperatorType::FDelete:
 		{
 			delete reinterpret_cast< Iter* >( a_ValueA );
 			return nullptr;
+		}
+		case OperatorType::RDelete:
+		{
+			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
+			{
+				delete reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA );
+				return nullptr;
+			}
+
+			delete reinterpret_cast< Iter* >( a_ValueA );
+			return nullptr;
+		}
+		case OperatorType::FBegin:
+		{
+			return new Iter( *reinterpret_cast< Iter* >( a_Enumerable->m_Begin ) );
+		}
+		case OperatorType::RBegin:
+		{
+			Iter& End = *reinterpret_cast< Iter* >( a_Enumerable->m_End );
+
+			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
+			{
+				return new reverse_iterator< Iter >( *reinterpret_cast< Iter* >( a_Enumerable->m_End ) );
+			}
+
+			Iter& Beg = *reinterpret_cast< Iter* >( a_Enumerable->m_Begin );
+
+			if ( Beg == End )
+			{
+				return new Iter( Beg );
+			}
+
+			Iter Guard = Beg;
+			Iter* Marker = new Iter( Guard++ );
+			for ( ; Guard != End; ++*Marker, ++Guard );
+			return Marker;
+		}
+		case OperatorType::FEnd:
+		{
+			return new Iter( *reinterpret_cast< Iter* >( a_Enumerable->m_End ) );
+		}
+		case OperatorType::REnd:
+		{
+			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
+			{
+				return new reverse_iterator< Iter >( *reinterpret_cast< Iter* >( a_Enumerable->m_Begin ) );
+			}
+
+			return new Iter( *reinterpret_cast< Iter* >( a_Enumerable->m_End ) );
+		}
+		case OperatorType::FShift:
+		{
+			int Places = reinterpret_cast< int >( a_ValueB );
+
+			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
+			{
+				advance( *reinterpret_cast< Iter* >( a_ValueA ), Places );
+				return a_ValueA;
+			}
+
+			if ( !Places )
+			{
+				return a_ValueA;
+			}
+			else if ( Places > 0 )
+			{
+				Iter& Subject = *reinterpret_cast< Iter* >( a_ValueA );
+				for ( ; Places > 0; --Places ) ++Subject;
+				return a_ValueA;
+			}
+			else if ( Places < 0 )
+			{
+				Iter Marker = *reinterpret_cast< Iter* >( a_Enumerable->m_Begin );
+				Iter& Sub = *reinterpret_cast< Iter* >( a_ValueA );
+				for ( ; Places < 0 && Marker != Sub; ++Places, ++Marker );
+				_STL_ASSERT( Places == 0, "Cannot iterate before begin." );
+				Iter Beg = *reinterpret_cast< Iter* >( a_Enumerable->m_Begin );
+				for ( ; Marker != Sub; ++Beg, ++Marker );
+				Sub = Beg;
+				return a_ValueA;
+			}
 		}
 		case OperatorType::RShift:
 		{
@@ -606,7 +747,7 @@ private:
 
 			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
 			{
-				advance( *reinterpret_cast< Iter* >( a_ValueA ), -Places );
+				advance( *reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA ), Places );
 				return a_ValueA;
 			}
 
@@ -623,7 +764,6 @@ private:
 
 				Iter& Begin = *reinterpret_cast< Iter* >( a_Enumerable->m_Begin );
 				Iter Marker = Begin;
-				int FDistance = 0;
 				for ( ; Places > 0 && Marker != Sub; --Places, ++Marker );
 
 				if ( Places == 1 )
@@ -660,67 +800,30 @@ private:
 				return a_ValueA;
 			}
 		}
-		case OperatorType::FShift:
-		{
-			int Places = reinterpret_cast< int >( a_ValueB );
-
-			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
-			{
-				advance( *reinterpret_cast< Iter* >( a_ValueA ), Places );
-				return a_ValueA;
-			}
-
-			if ( !Places )
-			{
-				return a_ValueA;
-			}
-			else if ( Places > 0 )
-			{
-				Iter& Subject = *reinterpret_cast< Iter* >( a_ValueA );
-				for ( ; Places > 0; --Places ) ++Subject;
-				return a_ValueA;
-			}
-			else if ( Places < 0 )
-			{
-				Iter Marker = *reinterpret_cast< Iter* >( a_Enumerable->m_Begin );
-				Iter& Sub = *reinterpret_cast< Iter* >( a_ValueA );
-				for ( ; Places < 0 && Marker != Sub; ++Places, ++Marker );
-				_STL_ASSERT( Places == 0, "Cannot iterate before begin." );
-				Iter Beg = *reinterpret_cast< Iter* >( a_Enumerable->m_Begin );
-				for ( ; Marker != Sub; ++Beg, ++Marker );
-				Sub = Beg;
-				return a_ValueA;
-			}
-		}
-		case OperatorType::Dereference:
+		case OperatorType::FDereference:
 		{
 			return &**reinterpret_cast< Iter* >( a_ValueA );
 		}
-		case OperatorType::RDistance:
+		case OperatorType::RDereference:
 		{
-			Iter Left = *reinterpret_cast< Iter* >( a_ValueA );
-			Iter& Right = *reinterpret_cast< Iter* >( a_ValueB );
-
-			if constexpr ( _Is_random_iter_v< Iter > )
+			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
 			{
-				return Left - Right;
+				return &**reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA );
 			}
 
-			Iter& End = *reinterpret_cast< Iter* >( a_Enumerable->m_End );
-			if ( Left == End )
-			{
-
-			}
+			return &**reinterpret_cast< Iter* >( a_ValueA );
 		}
 		case OperatorType::FDistance:
 		{
-			Iter Left = *reinterpret_cast< Iter* >( a_ValueA );
-			Iter& Right = *reinterpret_cast< Iter* >( a_ValueB );
-
 			if constexpr ( _Is_random_iter_v< Iter > )
 			{
-				return Right - Left;
+				return reinterpret_cast< void* >( 
+					*reinterpret_cast< Iter* >( a_ValueA ) - 
+					*reinterpret_cast< Iter* >( a_ValueB ) );
 			}
+
+			Iter Left   = *reinterpret_cast< Iter* >( a_ValueA );
+			Iter& Right = *reinterpret_cast< Iter* >( a_ValueB );
 
 			if ( Left == Right )
 			{
@@ -742,124 +845,114 @@ private:
 				return reinterpret_cast< void* >( a_Enumerable->m_Size - Length );
 			}
 		}
-		case OperatorType::Equality:
-		{
-			return reinterpret_cast< void* >( *reinterpret_cast< const Iter* >( a_ValueA ) == *reinterpret_cast< const Iter* >( a_ValueB ) );
-		}
-		/*case OperatorType::Greater:
+		case OperatorType::RDistance:
 		{
 			if constexpr ( _Is_random_iter_v< Iter > )
 			{
-				return *reinterpret_cast< Iter* >( a_ValueA ) > *reinterpret_cast< Iter* >( a_ValueB );
+				return reinterpret_cast< void* >( 
+					*reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA ) - 
+					*reinterpret_cast< reverse_iterator< Iter >* >( a_ValueB ) );
 			}
-			else
+
+			if constexpr ( _Is_bidi_iter_v< Iter > )
 			{
-				if ( *reinterpret_cast< Iter* >( a_ValueA ) == *reinterpret_cast< Iter* >( a_ValueB ) )
+				auto Left = *reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA );  auto LeftVal = *Left;
+				auto& Right = *reinterpret_cast< reverse_iterator< Iter >* >( a_ValueB );
+
+				if ( Left == Right )
 				{
-					return reinterpret_cast< void* >( false );
+					return 0;
 				}
 
-				Iter Left = *reinterpret_cast< Iter* >( a_ValueA );
-				Iter& End = *reinterpret_cast< Iter* >( a_Enumerable->m_End );
-				Iter& Sentinel = *reinterpret_cast< Iter* >( a_ValueB );
+				int Length = 0;
+				auto End = ++make_reverse_iterator( *reinterpret_cast< Iter* >( a_Enumerable->m_Begin ) );
+				for ( ; Left != Right && Left != End; ++Left, ++Length );
 
-				for ( ; Left != End; ++Left )
+				if ( Left == Right )
 				{
-					if ( Left == Sentinel )
-					{
-						return reinterpret_cast< void* >( false );
-					}
+					return reinterpret_cast< void* >( Length );
 				}
 
-				return reinterpret_cast< void* >( true );
+				for ( Left = *reinterpret_cast< reverse_iterator< Iter >* >( a_Enumerable->m_Begin ); Left != Right; ++Left, ++Length );
+				return reinterpret_cast< void* >( Length - a_Enumerable->m_Size );
 			}
+
+			Iter Left = *reinterpret_cast< Iter* >( a_ValueA );
+			Iter& Right = *reinterpret_cast< Iter* >( a_ValueB );
+
+			if ( Left == Right )
+			{
+				return 0;
+			}
+
+			int Length = 0;
+			Iter& Beg = *reinterpret_cast< Iter* >( a_Enumerable->m_Begin );
+			Iter& End = *reinterpret_cast< Iter* >( a_Enumerable->m_End );
+
+			if ( Left == End )
+			{
+				Left = Beg;
+				++Length;
+			}
+
+			for ( ; Left != Right && Left != End; ++Left, ++Length );
+
+			if ( Left == Right )
+			{
+				return reinterpret_cast< void* >( Length );
+			}
+
+			for ( Left = Beg; Left != Right; ++Left, ++Length );
+			return reinterpret_cast< void* >( Length - a_Enumerable->m_Size );
+		}
+		case OperatorType::FEquality:
+		{
+			return reinterpret_cast< void* >( 
+				*reinterpret_cast< Iter* >( a_ValueA ) == 
+				*reinterpret_cast< Iter* >( a_ValueB ) );
+		}
+		case OperatorType::REquality:
+		{
+			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
+			{
+				return reinterpret_cast< void* >( 
+					*reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA ) == 
+					*reinterpret_cast< reverse_iterator< Iter >* >( a_ValueB ) );
+			}
+
+			return reinterpret_cast< void* >(
+				*reinterpret_cast< Iter* >( a_ValueA ) ==
+				*reinterpret_cast< Iter* >( a_ValueB ) );
 		}
 		case OperatorType::FGreaterEqual:
 		{
-			if constexpr ( _Is_random_iter_v< Iter > )
-			{
-				return *reinterpret_cast< Iter* >( a_ValueA ) >= *reinterpret_cast< Iter* >( a_ValueB );
-			}
-			else
-			{
-				if ( *reinterpret_cast< Iter* >( a_ValueA ) == *reinterpret_cast< Iter* >( a_ValueB ) )
-				{
-					return reinterpret_cast< void* >( true );
-				}
-
-				Iter Left = *reinterpret_cast< Iter* >( a_ValueA );
-				Iter& End = *reinterpret_cast< Iter* >( a_Enumerable->m_End );
-				Iter& Sentinel = *reinterpret_cast< Iter* >( a_ValueB );
-
-				for ( ; Left != End; ++Left )
-				{
-					if ( Left == Sentinel )
-					{
-						return reinterpret_cast< void* >( false );
-					}
-				}
-
-				return reinterpret_cast< void* >( true );
-			}
+			return nullptr;
 		}
-		case OperatorType::Lesser:
+		case OperatorType::RGreaterEqual:
 		{
-			if constexpr ( _Is_random_iter_v< Iter > )
-			{
-				return *reinterpret_cast< Iter* >( a_ValueB ) > *reinterpret_cast< Iter* >( a_ValueA );
-			}
-			else
-			{
-				if ( *reinterpret_cast< Iter* >( a_ValueA ) == *reinterpret_cast< Iter* >( a_ValueB ) )
-				{
-					return reinterpret_cast< void* >( false );
-				}
-
-				Iter Right = *reinterpret_cast< Iter* >( a_ValueB );
-				Iter& End = *reinterpret_cast< Iter* >( a_Enumerable->m_End );
-				Iter& Sentinel = *reinterpret_cast< Iter* >( a_ValueA );
-
-				for ( ; Right != End; ++Right )
-				{
-					if ( Right == Sentinel )
-					{
-						return reinterpret_cast< void* >( false );
-					}
-				}
-
-				return reinterpret_cast< void* >( true );
-			}
+			return nullptr;
 		}
 		case OperatorType::FLesserEqual:
 		{
-			if constexpr ( _Is_random_iter_v< Iter > )
-			{
-				return *reinterpret_cast< Iter* >( a_ValueB ) >= *reinterpret_cast< Iter* >( a_ValueA );
-			}
-			else
-			{
-				if ( *reinterpret_cast< Iter* >( a_ValueB ) == *reinterpret_cast< Iter* >( a_ValueA ) )
-				{
-					return reinterpret_cast< void* >( true );
-				}
-
-				Iter Right = *reinterpret_cast< Iter* >( a_ValueB );
-				Iter& End = *reinterpret_cast< Iter* >( a_Enumerable->m_End );
-				Iter& Sentinel = *reinterpret_cast< Iter* >( a_ValueA );
-
-				for ( ; Right != End; ++Right )
-				{
-					if ( Right == Sentinel )
-					{
-						return reinterpret_cast< void* >( false );
-					}
-				}
-
-				return reinterpret_cast< void* >( true );
-			}
-		}*/
-		case OperatorType::Assign:
+			return nullptr;
+		}
+		case OperatorType::RLesserEqual:
 		{
+			return nullptr;
+		}
+		case OperatorType::FAssign:
+		{
+			*reinterpret_cast< Iter* >( a_ValueA ) = *reinterpret_cast< Iter* >( a_ValueB );
+			return a_ValueA;
+		}
+		case OperatorType::RAssign:
+		{
+			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
+			{
+				*reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA ) = *reinterpret_cast< reverse_iterator< Iter >* >( a_ValueB );
+				return a_ValueA;
+			}
+
 			*reinterpret_cast< Iter* >( a_ValueA ) = *reinterpret_cast< Iter* >( a_ValueB );
 			return a_ValueA;
 		}
