@@ -96,64 +96,98 @@ struct Cont
     T num[10];
 };
 
-struct Num
-{
-    int num = 0;
-    Num( int _num ) : num( _num ) {  }
-    
-    Num operator-( const Num& _num )
-    {
-        return Num( num - _num.num );
-    }
-};
-
 int main()
 {
-    Num num0 = 10;
-    Num num1 = 3;
-    Num num2 = num0 - num1;
+    using RIter = Enumerable< int >::RIterator;
+    using FIter = Enumerable< int >::Iterator;
 
-    Array< int, 7 > a = { 2, 3, 1, 10, 11, 12, 24 };
-    Array< int, 7 > b = { 2, 4, 5, 1, 10, 11, 24 };
-    Array< int > c = { 4, 5, 6, 7 };
+    Cont< int > Forward;
+    vector< int > Random = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    list< int > Bidi = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-    Cont< int > cont;
+    Enumerable< int > F( Forward.Begin(), Forward.End() );
+    Enumerable< int > R( Random.begin(),  Random.end() );
+    Enumerable< int > B( Bidi.begin(),    Bidi.end() );
 
-    map< int, int > m;
+    auto F_FB = F.Begin();
+    auto F_RB = F.RBegin();
+    auto F_FE = F.End();
+    auto F_RE = F.REnd();
 
-    for ( int i = 0; i < 10; ++i )
-    {
-        m.emplace( make_pair( i, i ) );
-    }
+    auto R_FB = R.Begin();
+    auto R_RB = R.RBegin();
+    auto R_FE = R.End();
+    auto R_RE = R.REnd();
 
-    
+    auto B_FB = B.Begin();
+    auto B_RB = B.RBegin();
+    auto B_FE = B.End();
+    auto B_RE = B.REnd();
 
-    Enumerable< pair< const int, int > > e( m.begin(), m.end() );
+    // Creating Iterator from Reverse iterator shifts it correctly.
+    { _ASSERT( FIter( F_RB )     == F_FE ); }
+    { _ASSERT( FIter( F_RE )     == F_FB ); }
+    { _ASSERT( FIter( F_RB + 1 ) == F_FE - 1 ); }
+    { _ASSERT( FIter( F_RE - 1 ) == F_FB + 1 ); }
 
-    auto beg = e.Begin();
-    auto end = e.End();
-    auto rbeg = e.RBegin();
-    auto rend = e.REnd();
+    { _ASSERT( RIter( F_FB )     == F_RE ); }
+    { _ASSERT( RIter( F_FE )     == F_RB ); }
+    { _ASSERT( RIter( F_FB + 1 ) == F_RE - 1 ); }
+    { _ASSERT( RIter( F_FE - 1 ) == F_RB + 1 ); }
 
-    for ( rend -= 1; rbeg != rend; --rend )
-    {
-        cout << (*rend ).first << ":" << (*rend ).second << endl;
-        cout << rend - rbeg << endl;
-    }
+    { _ASSERT( FIter( B_RB )     == B_FE ); }
+    { _ASSERT( FIter( B_RE )     == B_FB ); }
+    { _ASSERT( FIter( B_RB + 1 ) == B_FE - 1 ); }
+    { _ASSERT( FIter( B_RE - 1 ) == B_FB + 1 ); }
 
-    auto distance = rend - rbeg;
+    { _ASSERT( RIter( B_FB )     == B_RE ); }
+    { _ASSERT( RIter( B_FE )     == B_RB ); }
+    { _ASSERT( RIter( B_FB + 1 ) == B_RE - 1 ); }
+    { _ASSERT( RIter( B_FE - 1 ) == B_RB + 1 ); }
 
-    auto rval0 = *rbeg;
-    auto rval1 = *rend;
+    { _ASSERT( FIter( R_RB )     == R_FE ); }
+    { _ASSERT( FIter( R_RE )     == R_FB ); }
+    { _ASSERT( FIter( R_RB + 1 ) == R_FE - 1 ); }
+    { _ASSERT( FIter( R_RE - 1 ) == R_FB + 1 ); }
 
-    /*using RIt = Enumerable< int >::RIterator;
-    auto iter = RIt( e.Begin() ) - 1;
-    auto iterE = RIt( e.End() );
-    auto iterVal = *iter;
-    auto iterEVal = *iterE;
+    { _ASSERT( RIter( R_FB )     == R_RE ); }
+    { _ASSERT( RIter( R_FE )     == R_RB ); }
+    { _ASSERT( RIter( R_FB + 1 ) == R_RE - 1 ); }
+    { _ASSERT( RIter( R_FE - 1 ) == R_RB + 1 ); }
 
-    for ( ; iter != iterE; --iter )
-    {
-        cout << *iter << endl;
-    }*/
+    { _ASSERT( *( F_FB + 1 ) == 1 ); }
+    { _ASSERT( *( F_RB + 1 ) == 8 ); }
+    { _ASSERT( *( F_FE - 1 ) == 9 ); }
+    { _ASSERT( *( F_RE - 1 ) == 0 ); }
+
+    { _ASSERT( *( B_FB + 1 ) == 1 ); }
+    { _ASSERT( *( B_RB + 1 ) == 8 ); }
+    { _ASSERT( *( B_FE - 1 ) == 9 ); }
+    { _ASSERT( *( B_RE - 1 ) == 0 ); }
+
+    { _ASSERT( *( R_FB + 1 ) == 1 ); }
+    { _ASSERT( *( R_RB + 1 ) == 8 ); }
+    { _ASSERT( *( R_FE - 1 ) == 9 ); }
+    { _ASSERT( *( R_RE - 1 ) == 0 ); }
+
+    { _ASSERT( *( FIter( F_FB ) += 1 ) == 1 ); }
+    { _ASSERT( *( RIter( F_RB ) += 1 ) == 8 ); }
+    { _ASSERT( *( FIter( F_FE ) -= 1 ) == 9 ); }
+    { _ASSERT( *( RIter( F_RE ) -= 1 ) == 0 ); }
+
+    { _ASSERT( *( FIter( B_FB ) += 1 ) == 1 ); }
+    { _ASSERT( *( RIter( B_RB ) += 1 ) == 8 ); }
+    { _ASSERT( *( FIter( B_FE ) -= 1 ) == 9 ); }
+    { _ASSERT( *( RIter( B_RE ) -= 1 ) == 0 ); }
+
+    { _ASSERT( *( FIter( R_FB ) += 1 ) == 1 ); }
+    { _ASSERT( *( RIter( R_RB ) += 1 ) == 8 ); }
+    { _ASSERT( *( FIter( R_FE ) -= 1 ) == 9 ); }
+    { _ASSERT( *( RIter( R_RE ) -= 1 ) == 0 ); }
+
+    { _ASSERT( ( F_FB - F_FE ) == -10 ); }
+    { _ASSERT( ( F_FE - F_FB ) ==  10 ); }
+    { _ASSERT( ( F_RB - F_RE ) == -10 ); }
+    { _ASSERT( ( F_RE - F_RB ) ==  10 ); }
+
 }

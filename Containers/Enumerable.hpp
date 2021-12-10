@@ -248,7 +248,7 @@ public:
 
 		RIterator( RIterator& a_RIterator )
 			: m_Enumerable( a_RIterator.m_Enumerable )
-			, m_Iterator( m_Operator( a_RIterator.m_Iterator, 0, 0, OperatorType::RClone ) )
+			, m_Iterator( m_Enumerable->m_Operator( a_RIterator.m_Iterator, 0, 0, OperatorType::RClone ) )
 		{ }
 
 		RIterator( RIterator&& a_RIterator )
@@ -611,10 +611,10 @@ private:
 		{
 			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
 			{
-				auto* Old = reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA );
+				/*auto* Old = reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA );
 				Iter* New = new Iter( Old->base() );
-				++*New;
-				return New;
+				++*New;*/
+				return new Iter( reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA )->base() );
 			}
 
 			Iter& Old = *reinterpret_cast< Iter* >( a_ValueA );
@@ -626,17 +626,13 @@ private:
 				return &New;
 			}
 
-			New = Old;
 			return &++New;
 		}
 		case OperatorType::RConvert:
 		{
 			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
 			{
-				Iter* Old = reinterpret_cast< Iter* >( a_ValueA );
-				auto* New = new reverse_iterator< Iter >( make_reverse_iterator( *Old ) );
-				++*New;
-				return New;
+				return new reverse_iterator< Iter >( make_reverse_iterator( *reinterpret_cast< Iter* >( a_ValueA ) ) );
 			}
 
 			Iter& Old = *reinterpret_cast< Iter* >( a_ValueA );
@@ -856,8 +852,8 @@ private:
 
 			if constexpr ( _Is_bidi_iter_v< Iter > )
 			{
-				auto Left = *reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA );  auto LeftVal = *Left;
-				auto& Right = *reinterpret_cast< reverse_iterator< Iter >* >( a_ValueB );
+				auto Left  = reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA )->base();
+				auto Right = reinterpret_cast< reverse_iterator< Iter >* >( a_ValueB )->base();
 
 				if ( Left == Right )
 				{
@@ -865,7 +861,7 @@ private:
 				}
 
 				int Length = 0;
-				auto End = ++make_reverse_iterator( *reinterpret_cast< Iter* >( a_Enumerable->m_Begin ) );
+				auto& End = *reinterpret_cast< Iter* >( a_Enumerable->m_End );
 				for ( ; Left != Right && Left != End; ++Left, ++Length );
 
 				if ( Left == Right )
@@ -873,11 +869,11 @@ private:
 					return reinterpret_cast< void* >( Length );
 				}
 
-				for ( Left = *reinterpret_cast< reverse_iterator< Iter >* >( a_Enumerable->m_Begin ); Left != Right; ++Left, ++Length );
+				for ( Left = *reinterpret_cast< Iter* >( a_Enumerable->m_Begin ); Left != Right; ++Left, ++Length );
 				return reinterpret_cast< void* >( Length - a_Enumerable->m_Size );
 			}
 
-			Iter Left = *reinterpret_cast< Iter* >( a_ValueA );
+			Iter Left   = *reinterpret_cast< Iter* >( a_ValueA );
 			Iter& Right = *reinterpret_cast< Iter* >( a_ValueB );
 
 			if ( Left == Right )
