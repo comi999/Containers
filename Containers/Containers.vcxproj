@@ -143,6 +143,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Array.hpp" />
+    <ClInclude Include="ContainerTraits.hpp" />
     <ClInclude Include="Delegate.hpp" />
     <ClInclude Include="Enumerable.hpp" />
     <ClInclude Include="FunctionTraits.hpp" />

@@ -4,11 +4,39 @@
 
 using namespace std;
 
+
+
 template < typename T >
 class Enumerable
 {
+	/*template < typename Iter >
+	static constexpr bool IsCorrectIter = _Is_iterator_v< Iter > && is_same_v< typename iterator_traits< Iter >::value_type, T >;
+
+	template < typename Container >
+	static constexpr bool IsIterable = HasMember_begin< Container >::Value && HasMember_end< Container >::Value && IsCorrectIter< typename Container::iterator >;
+
+	template < typename Container >
+	static constexpr bool IsSizeable = HasMember_size< Container >::Value;
+
+	template < typename Container >
+	using EnableIfContainer = enable_if_t< IsIterable< Container > && IsSizeable< Container >, void >;
+
 	template < typename Iter >
-	using EnableIfCompatible = std::enable_if_t< _Is_iterator_v< Iter >&& is_same_v< typename iterator_traits< Iter >::value_type, T >, void >;
+	using EnableIfCorrectIter = enable_if_t< _Is_iterator_v< Iter >&& is_same_v< typename iterator_traits< Iter >::value_type, T >, void >;
+
+	template < typename Container, bool IsContainer = IsIterable< Container > && IsSizeable< Container > >
+	struct GetIteratorImpl
+	{
+		using Type = decltype( Container::begin() );
+	};
+
+	template < typename Container >
+	struct GetIteratorImpl< Container, false >
+	{
+		using Type = void;
+	};
+
+	GetIteratorImpl< vector< int > >::Type;*/
 
 	enum class OperatorType : char
 	{
@@ -944,9 +972,15 @@ public:
 		void*            m_Iterator;
 	};
 
-private:
+	template < typename Iter, typename = EnableIfCorrectIter< Iter > >
+	Enumerable( Iter a_Begin, Iter a_End )
+		: m_Begin( new Iter( a_Begin ) )
+		, m_End( new Iter( a_End ) )
+		, m_Size( distance( a_Begin, a_End ) )
+		, m_Operator( Operator< Iter > )
+	{ }
 
-	template < typename Iter, typename = EnableIfCompatible< Iter > >
+	template < typename Iter, typename = EnableIfCorrectIter< Iter > >
 	Enumerable( Iter a_Begin, Iter a_End, size_t a_Size )
 		: m_Begin( new Iter( a_Begin ) )
 		, m_End( new Iter( a_End ) )
@@ -954,14 +988,12 @@ private:
 		, m_Operator( Operator< Iter > )
 	{ }
 
-public:
-
-	template < typename Iter, typename = EnableIfCompatible< Iter > >
-	Enumerable( Iter a_Begin, Iter a_End )
-		: m_Begin( new Iter( a_Begin ) )
-		, m_End( new Iter( a_End ) )
-		, m_Size( distance( a_Begin, a_End ) )
-		, m_Operator( Operator< Iter > )
+	template < typename Container, typename = EnableIfContainer< Container > >
+	Enumerable( Container& a_Container )
+		: m_Begin( new typename Container::iterator( a_Container.begin() ) )
+		, m_End( new typename Container::iterator( a_Container.end() ) )
+		, m_Size( a_Container.size() )
+		, m_Operator( Operator< typename Container::iterator > )
 	{ }
 
 	~Enumerable()

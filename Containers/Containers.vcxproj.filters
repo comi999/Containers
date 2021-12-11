@@ -38,6 +38,9 @@
     <ClInclude Include="Enumerable.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="ContainerTraits.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Enumerable.natvis" />

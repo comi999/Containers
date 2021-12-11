@@ -460,4 +460,7 @@ int main()
     { _ASSERT( ( R_RB + 1 ) <  ( R_RB + 1 ) == false ); }
     { _ASSERT( ( R_RE - 1 ) <= ( R_RE - 1 ) == true  ); }
     { _ASSERT( ( R_RE - 1 ) <  ( R_RE - 1 ) == false ); }
+
+    vector< int > v;
+    Enumerable< int > enumerable( v );
 }
