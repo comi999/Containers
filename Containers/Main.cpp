@@ -101,13 +101,13 @@ int main()
     using RIter = Enumerable< int >::RIterator;
     using FIter = Enumerable< int >::Iterator;
 
-    Cont< int > Forward;
+    Cont< int >   Forward;
     vector< int > Random = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    list< int > Bidi = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    list< int >   Bidi   = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
     Enumerable< int > F( Forward.Begin(), Forward.End() );
-    Enumerable< int > R( Random.begin(),  Random.end() );
-    Enumerable< int > B( Bidi.begin(),    Bidi.end() );
+    Enumerable< int > R( Random.begin(),  Random.end()  );
+    Enumerable< int > B( Bidi.begin(),    Bidi.end()    );
 
     auto F_FB = F.Begin();
     auto F_RB = F.RBegin();
@@ -272,4 +272,192 @@ int main()
     { _ASSERT( R_FE >= R_FE == true  ); }
     { _ASSERT( R_FE >  R_FE == false ); }
 
+    { _ASSERT( ( F_FB + 1 ) >= ( F_FE - 1 ) == false ); }
+    { _ASSERT( ( F_FB + 1 ) >  ( F_FE - 1 ) == false ); }
+    { _ASSERT( ( F_FE - 1 ) >= ( F_FB + 1 ) == true  ); }
+    { _ASSERT( ( F_FE - 1 ) >  ( F_FB + 1 ) == true  ); }
+    { _ASSERT( ( F_FB + 1 ) >= ( F_FB + 1 ) == true  ); }
+    { _ASSERT( ( F_FB + 1 ) >  ( F_FB + 1 ) == false ); }
+    { _ASSERT( ( F_FE - 1 ) >= ( F_FE - 1 ) == true  ); }
+    { _ASSERT( ( F_FE - 1 ) >  ( F_FE - 1 ) == false ); }
+
+    { _ASSERT( ( B_FB + 1 ) >= ( B_FE - 1 ) == false ); }
+    { _ASSERT( ( B_FB + 1 ) >  ( B_FE - 1 ) == false ); }
+    { _ASSERT( ( B_FE - 1 ) >= ( B_FB + 1 ) == true  ); }
+    { _ASSERT( ( B_FE - 1 ) >  ( B_FB + 1 ) == true  ); }
+    { _ASSERT( ( B_FB + 1 ) >= ( B_FB + 1 ) == true  ); }
+    { _ASSERT( ( B_FB + 1 ) >  ( B_FB + 1 ) == false ); }
+    { _ASSERT( ( B_FE - 1 ) >= ( B_FE - 1 ) == true  ); }
+    { _ASSERT( ( B_FE - 1 ) >  ( B_FE - 1 ) == false ); }
+
+    { _ASSERT( ( R_FB + 1 ) >= ( R_FE - 1 ) == false ); }
+    { _ASSERT( ( R_FB + 1 ) >  ( R_FE - 1 ) == false ); }
+    { _ASSERT( ( R_FE - 1 ) >= ( R_FB + 1 ) == true  ); }
+    { _ASSERT( ( R_FE - 1 ) >  ( R_FB + 1 ) == true  ); }
+    { _ASSERT( ( R_FB + 1 ) >= ( R_FB + 1 ) == true  ); }
+    { _ASSERT( ( R_FB + 1 ) >  ( R_FB + 1 ) == false ); }
+    { _ASSERT( ( R_FE - 1 ) >= ( R_FE - 1 ) == true  ); }
+    { _ASSERT( ( R_FE - 1 ) >  ( R_FE - 1 ) == false ); }
+
+    { _ASSERT( F_RB >= F_RE == false ); }
+    { _ASSERT( F_RB >  F_RE == false ); }
+    { _ASSERT( F_RE >= F_RB == true  ); }
+    { _ASSERT( F_RE >  F_RB == true  ); }
+    { _ASSERT( F_RB >= F_RB == true  ); }
+    { _ASSERT( F_RB >  F_RB == false ); }
+    { _ASSERT( F_RE >= F_RE == true  ); }
+    { _ASSERT( F_RE >  F_RE == false ); }
+
+    { _ASSERT( B_RB >= B_RE == false ); }
+    { _ASSERT( B_RB >  B_RE == false ); }
+    { _ASSERT( B_RE >= B_RB == true  ); }
+    { _ASSERT( B_RE >  B_RB == true  ); }
+    { _ASSERT( B_RB >= B_RB == true  ); }
+    { _ASSERT( B_RB >  B_RB == false ); }
+    { _ASSERT( B_RE >= B_RE == true  ); }
+    { _ASSERT( B_RE >  B_RE == false ); }
+
+    { _ASSERT( R_RB >= R_RE == false ); }
+    { _ASSERT( R_RB >  R_RE == false ); }
+    { _ASSERT( R_RE >= R_RB == true  ); }
+    { _ASSERT( R_RE >  R_RB == true  ); }
+    { _ASSERT( R_RB >= R_RB == true  ); }
+    { _ASSERT( R_RB >  R_RB == false ); }
+    { _ASSERT( R_RE >= R_RE == true  ); }
+    { _ASSERT( R_RE >  R_RE == false ); }
+
+    { _ASSERT( ( F_RB + 1 ) >= ( F_RE - 1 ) == false ); }
+    { _ASSERT( ( F_RB + 1 ) >  ( F_RE - 1 ) == false ); }
+    { _ASSERT( ( F_RE - 1 ) >= ( F_RB + 1 ) == true  ); }
+    { _ASSERT( ( F_RE - 1 ) >  ( F_RB + 1 ) == true  ); }
+    { _ASSERT( ( F_RB + 1 ) >= ( F_RB + 1 ) == true  ); }
+    { _ASSERT( ( F_RB + 1 ) >  ( F_RB + 1 ) == false ); }
+    { _ASSERT( ( F_RE - 1 ) >= ( F_RE - 1 ) == true  ); }
+    { _ASSERT( ( F_RE - 1 ) >  ( F_RE - 1 ) == false ); }
+
+    { _ASSERT( ( B_RB + 1 ) >= ( B_RE - 1 ) == false ); }
+    { _ASSERT( ( B_RB + 1 ) >  ( B_RE - 1 ) == false ); }
+    { _ASSERT( ( B_RE - 1 ) >= ( B_RB + 1 ) == true  ); }
+    { _ASSERT( ( B_RE - 1 ) >  ( B_RB + 1 ) == true  ); }
+    { _ASSERT( ( B_RB + 1 ) >= ( B_RB + 1 ) == true  ); }
+    { _ASSERT( ( B_RB + 1 ) >  ( B_RB + 1 ) == false ); }
+    { _ASSERT( ( B_RE - 1 ) >= ( B_RE - 1 ) == true  ); }
+    { _ASSERT( ( B_RE - 1 ) >  ( B_RE - 1 ) == false ); }
+
+    { _ASSERT( ( R_RB + 1 ) >= ( R_RE - 1 ) == false ); }
+    { _ASSERT( ( R_RB + 1 ) >  ( R_RE - 1 ) == false ); }
+    { _ASSERT( ( R_RE - 1 ) >= ( R_RB + 1 ) == true  ); }
+    { _ASSERT( ( R_RE - 1 ) >  ( R_RB + 1 ) == true  ); }
+    { _ASSERT( ( R_RB + 1 ) >= ( R_RB + 1 ) == true  ); }
+    { _ASSERT( ( R_RB + 1 ) >  ( R_RB + 1 ) == false ); }
+    { _ASSERT( ( R_RE - 1 ) >= ( R_RE - 1 ) == true  ); }
+    { _ASSERT( ( R_RE - 1 ) >  ( R_RE - 1 ) == false ); }
+
+    { _ASSERT( F_FB <= F_FE == true  ); }
+    { _ASSERT( F_FB <  F_FE == true  ); }
+    { _ASSERT( F_FE <= F_FB == false ); }
+    { _ASSERT( F_FE <  F_FB == false ); }
+    { _ASSERT( F_FB <= F_FB == true  ); }
+    { _ASSERT( F_FB <  F_FB == false ); }
+    { _ASSERT( F_FE <= F_FE == true  ); }
+    { _ASSERT( F_FE <  F_FE == false ); }
+
+    { _ASSERT( B_FB <= B_FE == true  ); }
+    { _ASSERT( B_FB <  B_FE == true  ); }
+    { _ASSERT( B_FE <= B_FB == false ); }
+    { _ASSERT( B_FE <  B_FB == false ); }
+    { _ASSERT( B_FB <= B_FB == true  ); }
+    { _ASSERT( B_FB <  B_FB == false ); }
+    { _ASSERT( B_FE <= B_FE == true  ); }
+    { _ASSERT( B_FE <  B_FE == false ); }
+
+    { _ASSERT( R_FB <= R_FE == true  ); }
+    { _ASSERT( R_FB <  R_FE == true  ); }
+    { _ASSERT( R_FE <= R_FB == false ); }
+    { _ASSERT( R_FE <  R_FB == false ); }
+    { _ASSERT( R_FB <= R_FB == true  ); }
+    { _ASSERT( R_FB <  R_FB == false ); }
+    { _ASSERT( R_FE <= R_FE == true  ); }
+    { _ASSERT( R_FE <  R_FE == false ); }
+
+    { _ASSERT( ( F_FB + 1 ) <= ( F_FE - 1 ) == true  ); }
+    { _ASSERT( ( F_FB + 1 ) <  ( F_FE - 1 ) == true  ); }
+    { _ASSERT( ( F_FE - 1 ) <= ( F_FB + 1 ) == false ); }
+    { _ASSERT( ( F_FE - 1 ) <  ( F_FB + 1 ) == false ); }
+    { _ASSERT( ( F_FB + 1 ) <= ( F_FB + 1 ) == true  ); }
+    { _ASSERT( ( F_FB + 1 ) <  ( F_FB + 1 ) == false ); }
+    { _ASSERT( ( F_FE - 1 ) <= ( F_FE - 1 ) == true  ); }
+    { _ASSERT( ( F_FE - 1 ) <  ( F_FE - 1 ) == false ); }
+
+    { _ASSERT( ( B_FB + 1 ) <= ( B_FE - 1 ) == true  ); }
+    { _ASSERT( ( B_FB + 1 ) <  ( B_FE - 1 ) == true  ); }
+    { _ASSERT( ( B_FE - 1 ) <= ( B_FB + 1 ) == false ); }
+    { _ASSERT( ( B_FE - 1 ) <  ( B_FB + 1 ) == false ); }
+    { _ASSERT( ( B_FB + 1 ) <= ( B_FB + 1 ) == true  ); }
+    { _ASSERT( ( B_FB + 1 ) <  ( B_FB + 1 ) == false ); }
+    { _ASSERT( ( B_FE - 1 ) <= ( B_FE - 1 ) == true  ); }
+    { _ASSERT( ( B_FE - 1 ) <  ( B_FE - 1 ) == false ); }
+
+    { _ASSERT( ( R_FB + 1 ) <= ( R_FE - 1 ) == true  ); }
+    { _ASSERT( ( R_FB + 1 ) <  ( R_FE - 1 ) == true  ); }
+    { _ASSERT( ( R_FE - 1 ) <= ( R_FB + 1 ) == false ); }
+    { _ASSERT( ( R_FE - 1 ) <  ( R_FB + 1 ) == false ); }
+    { _ASSERT( ( R_FB + 1 ) <= ( R_FB + 1 ) == true  ); }
+    { _ASSERT( ( R_FB + 1 ) <  ( R_FB + 1 ) == false ); }
+    { _ASSERT( ( R_FE - 1 ) <= ( R_FE - 1 ) == true  ); }
+    { _ASSERT( ( R_FE - 1 ) <  ( R_FE - 1 ) == false ); }
+
+    { _ASSERT( F_RB <= F_RE == true  ); }
+    { _ASSERT( F_RB <  F_RE == true  ); }
+    { _ASSERT( F_RE <= F_RB == false ); }
+    { _ASSERT( F_RE <  F_RB == false ); }
+    { _ASSERT( F_RB <= F_RB == true  ); }
+    { _ASSERT( F_RB <  F_RB == false ); }
+    { _ASSERT( F_RE <= F_RE == true  ); }
+    { _ASSERT( F_RE <  F_RE == false ); }
+
+    { _ASSERT( B_RB <= B_RE == true  ); }
+    { _ASSERT( B_RB <  B_RE == true  ); }
+    { _ASSERT( B_RE <= B_RB == false ); }
+    { _ASSERT( B_RE <  B_RB == false ); }
+    { _ASSERT( B_RB <= B_RB == true  ); }
+    { _ASSERT( B_RB <  B_RB == false ); }
+    { _ASSERT( B_RE <= B_RE == true  ); }
+    { _ASSERT( B_RE <  B_RE == false ); }
+
+    { _ASSERT( R_RB <= R_RE == true  ); }
+    { _ASSERT( R_RB <  R_RE == true  ); }
+    { _ASSERT( R_RE <= R_RB == false ); }
+    { _ASSERT( R_RE <  R_RB == false ); }
+    { _ASSERT( R_RB <= R_RB == true  ); }
+    { _ASSERT( R_RB <  R_RB == false ); }
+    { _ASSERT( R_RE <= R_RE == true  ); }
+    { _ASSERT( R_RE <  R_RE == false ); }
+
+    { _ASSERT( ( F_RB + 1 ) <= ( F_RE - 1 ) == true  ); }
+    { _ASSERT( ( F_RB + 1 ) <  ( F_RE - 1 ) == true  ); }
+    { _ASSERT( ( F_RE - 1 ) <= ( F_RB + 1 ) == false ); }
+    { _ASSERT( ( F_RE - 1 ) <  ( F_RB + 1 ) == false ); }
+    { _ASSERT( ( F_RB + 1 ) <= ( F_RB + 1 ) == true  ); }
+    { _ASSERT( ( F_RB + 1 ) <  ( F_RB + 1 ) == false ); }
+    { _ASSERT( ( F_RE - 1 ) <= ( F_RE - 1 ) == true  ); }
+    { _ASSERT( ( F_RE - 1 ) <  ( F_RE - 1 ) == false ); }
+
+    { _ASSERT( ( B_RB + 1 ) <= ( B_RE - 1 ) == true  ); }
+    { _ASSERT( ( B_RB + 1 ) <  ( B_RE - 1 ) == true  ); }
+    { _ASSERT( ( B_RE - 1 ) <= ( B_RB + 1 ) == false ); }
+    { _ASSERT( ( B_RE - 1 ) <  ( B_RB + 1 ) == false ); }
+    { _ASSERT( ( B_RB + 1 ) <= ( B_RB + 1 ) == true  ); }
+    { _ASSERT( ( B_RB + 1 ) <  ( B_RB + 1 ) == false ); }
+    { _ASSERT( ( B_RE - 1 ) <= ( B_RE - 1 ) == true  ); }
+    { _ASSERT( ( B_RE - 1 ) <  ( B_RE - 1 ) == false ); }
+
+    { _ASSERT( ( R_RB + 1 ) <= ( R_RE - 1 ) == true  ); }
+    { _ASSERT( ( R_RB + 1 ) <  ( R_RE - 1 ) == true  ); }
+    { _ASSERT( ( R_RE - 1 ) <= ( R_RB + 1 ) == false ); }
+    { _ASSERT( ( R_RE - 1 ) <  ( R_RB + 1 ) == false ); }
+    { _ASSERT( ( R_RB + 1 ) <= ( R_RB + 1 ) == true  ); }
+    { _ASSERT( ( R_RB + 1 ) <  ( R_RB + 1 ) == false ); }
+    { _ASSERT( ( R_RE - 1 ) <= ( R_RE - 1 ) == true  ); }
+    { _ASSERT( ( R_RE - 1 ) <  ( R_RE - 1 ) == false ); }
 }
