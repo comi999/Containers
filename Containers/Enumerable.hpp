@@ -2,41 +2,14 @@
 #include <type_traits>
 #include <iterator>
 
+#include "ContainerTraits.hpp"
+
 using namespace std;
-
-
 
 template < typename T >
 class Enumerable
 {
-	/*template < typename Iter >
-	static constexpr bool IsCorrectIter = _Is_iterator_v< Iter > && is_same_v< typename iterator_traits< Iter >::value_type, T >;
-
-	template < typename Container >
-	static constexpr bool IsIterable = HasMember_begin< Container >::Value && HasMember_end< Container >::Value && IsCorrectIter< typename Container::iterator >;
-
-	template < typename Container >
-	static constexpr bool IsSizeable = HasMember_size< Container >::Value;
-
-	template < typename Container >
-	using EnableIfContainer = enable_if_t< IsIterable< Container > && IsSizeable< Container >, void >;
-
-	template < typename Iter >
-	using EnableIfCorrectIter = enable_if_t< _Is_iterator_v< Iter >&& is_same_v< typename iterator_traits< Iter >::value_type, T >, void >;
-
-	template < typename Container, bool IsContainer = IsIterable< Container > && IsSizeable< Container > >
-	struct GetIteratorImpl
-	{
-		using Type = decltype( Container::begin() );
-	};
-
-	template < typename Container >
-	struct GetIteratorImpl< Container, false >
-	{
-		using Type = void;
-	};
-
-	GetIteratorImpl< vector< int > >::Type;*/
+private:
 
 	enum class OperatorType : char
 	{
@@ -972,7 +945,7 @@ public:
 		void*            m_Iterator;
 	};
 
-	template < typename Iter > //, typename = EnableIfCorrectIter< Iter > >
+	template < typename Iter >
 	Enumerable( Iter a_Begin, Iter a_End )
 		: m_Begin( new Iter( a_Begin ) )
 		, m_End( new Iter( a_End ) )
@@ -980,7 +953,7 @@ public:
 		, m_Operator( Operator< Iter > )
 	{ }
 
-	template < typename Iter > //, typename = EnableIfCorrectIter< Iter > >
+	template < typename Iter >
 	Enumerable( Iter a_Begin, Iter a_End, size_t a_Size )
 		: m_Begin( new Iter( a_Begin ) )
 		, m_End( new Iter( a_End ) )
@@ -988,12 +961,12 @@ public:
 		, m_Operator( Operator< Iter > )
 	{ }
 
-	template < typename Container > //, typename = EnableIfContainer< Container > >
+	template < typename Container, typename Iter = ContainerTraits::GetIter< Container >, typename = typename enable_if_t< ContainerTraits::IsSizeable< Container >, void > >
 	Enumerable( Container& a_Container )
-		: m_Begin( new typename Container::iterator( a_Container.begin() ) )
-		, m_End( new typename Container::iterator( a_Container.end() ) )
+		: m_Begin( new Iter( a_Container.begin() ) )
+		, m_End( new Iter( a_Container.end() ) )
 		, m_Size( a_Container.size() )
-		, m_Operator( Operator< typename Container::iterator > )
+		, m_Operator( Operator< Iter > )
 	{ }
 
 	~Enumerable()

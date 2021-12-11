@@ -6,9 +6,7 @@ using namespace std;
 
 namespace ContainerTraits
 {
-
-
-    namespace
+    namespace // Private namespace
     {
         template < typename Container >
         struct IsSizeableImpl
@@ -33,31 +31,31 @@ namespace ContainerTraits
         };
 
         template < typename Container, bool IsIterable = IsIterableImpl< Container >::Value >
-        struct GetIteratorImpl
+        struct GetIterImpl
         {
             using Iterator = decltype( begin( declval< Container& >() ) );
             using CIterator = decltype( end( declval< Container >() ) );
         };
 
         template < typename Container >
-        struct GetIteratorImpl< Container, false >
+        struct GetIterImpl< Container, false >
         {
             using Iterator = void;
             using CIterator = void;
         };
 
         template < typename Iter, bool IsIterator = _Is_iterator_v< Iter > >
-        struct GetIteratorTypeImpl
+        struct GetIterTypeImpl
         {
-            using Type = remove_reference_t< decltype( *declval< Iter& >() ) >;
+            using Type = remove_reference_t< typename iterator_traits< Iter >::reference >;
         };
 
         template < typename Iter >
-        struct GetIteratorTypeImpl< Iter, false >
+        struct GetIterTypeImpl< Iter, false >
         {
             using Type = void;
         };
-    };
+    }; // End private namespace
 
     template < typename Container >
     static constexpr bool IsSizeable = IsSizeableImpl< Container >::Value;
@@ -66,88 +64,31 @@ namespace ContainerTraits
     static constexpr bool IsIterable = IsIterableImpl< Container >::Value;
 
     template < typename Container >
-    using GetIterator = typename GetIteratorImpl< Container >::Iterator;
+    using GetIter = typename GetIterImpl< Container >::Iterator;
 
     template < typename Container >
-    using GetCIterator = typename GetIteratorImpl< Container >::Iterator;
+    using GetCIter = typename GetIterImpl< Container >::CIterator;
 
     template < typename Iter >
-    using GetIteratorType = typename GetIteratorTypeImpl< Iter >::Type;
+    using GetIterType = typename GetIterTypeImpl< Iter >::Type;/*
 
-    /*template < typename Iter, typename T >
-    using EnableIfIterType = enable_if_t< is_same_v< GetIterType< Iter >, T >, void >;
+    template < typename Iter, typename Type >
+    using EnableIfIterType = enable_if_t< is_same_v< GetIterType< Iter >, Type >, void >;
 
-    template < typename Iter, typename T >
-    using DisableIfIterType = enable_if_t< !is_same_v< GetIterType< Iter >, T >, void >;
-
-    template < typename Container, typename T >
-    using EnableIfContainerWithIterType = enable_if_t< is_same_v< GetIterType< Container >, T >, void >;
-
-    template < typename Iter, typename T >
-    using DisableIfIterType = enable_if_t< !is_same_v< GetIterType< Iter >, T >, void >;*/
-
-    using iter = GetIterator< vector< int > >;
-
-    iter test;
-
-    /*template < typename Container >
-    class HasIter
-    {
-        template < typename U > static char test( decltype( begin( declval< U& >() ) != end( declval< U& >() ) ), decltype( ++declval< decltype( begin( declval< U& >() ) )& >() ), decltype( *begin( declval< U& >() ) ), true_type {} );
-        template < typename U > static long test( ... );
-    public:
-        static constexpr bool Value = sizeof( test< Container >( 0 ) ) > sizeof( char );
-    };
-
-    static constexpr bool val = HasIter< int >::Value;
+    template < typename Iter, typename Type >
+    using DisableIfIterType = enable_if_t< !is_same_v< GetIterType< Iter >, Type >, void >;
 
     template < typename Container >
-    class GetIterImpl
-    {
-        
-    };
+    using EnableIfSizeable = enable_if_t< IsSizeable< Container >, void >;
 
     template < typename Container >
-    class IsIterableImpl
-    {
-        template < typename U > static char test( decltype( begin( declval< U& >() ) != end( declval< U& >() ), decltype( ++declval< decltype( begin( declval< U& >() ) )& >() ), decltype( *begin( declval< U& >() ) ) ) );
-        template < typename U > static long test( ... );
-    public:
-        static constexpr bool Value = sizeof( test< Container >( 0 ) ) == sizeof( char );
-    };
-    
-    
-    using Type = decltype( begin( declval< vector< int >& >() ) );*/
+    using DisableIfSizeable = enable_if_t< !IsSizeable< Container >, void >;
 
-    //template < typename Iter, typename T >
-    //static constexpr bool IsCorrectIter = _Is_iterator_v< Iter > && is_same_v< typename iterator_traits< Iter >::value_type, T >;
+    template < typename Container >
+    using EnableIfIterable = enable_if_t< IsIterable< Container >, void >;
 
-    //template < typename Container >
-    //static constexpr bool IsIterable = HasMember_begin< Container >::Value && HasMember_end< Container >::Value;
-
-    //template < typename Container >
-    //static constexpr bool IsSizeable = HasMember_size< Container >::Value;
-
-    ////template < typename Container >
-    ////using EnableIfContainer = enable_if_t< IsIterable< Container >&& IsSizeable< Container >, void >;
-    ////
-    ////template < typename Iter >
-    ////using EnableIfCorrectIter = enable_if_t< _Is_iterator_v< Iter >&& is_same_v< typename iterator_traits< Iter >::value_type, T >, void >;
-
-    //template < typename Container, bool IsContainer = IsIterable< Container >&& IsSizeable< Container > >
-    //struct GetIteratorImpl
-    //{
-    //    using Type = decltype( Container::begin );
-    //};
-
-    //template < typename Container >
-    //struct GetIteratorImpl< Container, false >
-    //{
-    //    using Type = void;
-    //};
-
-    //using iter = GetIteratorImpl< vector< int > >::Type;
-    //static constexpr bool val = is_iterable< vector< int > >::value;
+    template < typename Container >
+    using DisableIfIterable = enable_if_t< !IsIterable< Container >, void >;*/
 
 };
 
