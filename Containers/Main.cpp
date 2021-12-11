@@ -154,7 +154,7 @@ int main()
     { _ASSERT( RIter( R_FE )     == R_RB ); }
     { _ASSERT( RIter( R_FB + 1 ) == R_RE - 1 ); }
     { _ASSERT( RIter( R_FE - 1 ) == R_RB + 1 ); }
-
+    // Adding integer to iterator gives back correct temp
     { _ASSERT( *( F_FB + 1 ) == 1 ); }
     { _ASSERT( *( F_RB + 1 ) == 8 ); }
     { _ASSERT( *( F_FE - 1 ) == 9 ); }
@@ -169,7 +169,7 @@ int main()
     { _ASSERT( *( R_RB + 1 ) == 8 ); }
     { _ASSERT( *( R_FE - 1 ) == 9 ); }
     { _ASSERT( *( R_RE - 1 ) == 0 ); }
-
+    // Incrementing iterator by integer gives correct value
     { _ASSERT( *( FIter( F_FB ) += 1 ) == 1 ); }
     { _ASSERT( *( RIter( F_RB ) += 1 ) == 8 ); }
     { _ASSERT( *( FIter( F_FE ) -= 1 ) == 9 ); }
@@ -184,10 +184,92 @@ int main()
     { _ASSERT( *( RIter( R_RB ) += 1 ) == 8 ); }
     { _ASSERT( *( FIter( R_FE ) -= 1 ) == 9 ); }
     { _ASSERT( *( RIter( R_RE ) -= 1 ) == 0 ); }
-
+    // Distance between iterators is correct.
     { _ASSERT( ( F_FB - F_FE ) == -10 ); }
     { _ASSERT( ( F_FE - F_FB ) ==  10 ); }
     { _ASSERT( ( F_RB - F_RE ) == -10 ); }
     { _ASSERT( ( F_RE - F_RB ) ==  10 ); }
+
+    { _ASSERT( ( B_FB - B_FE ) == -10 ); }
+    { _ASSERT( ( B_FE - B_FB ) ==  10 ); }
+    { _ASSERT( ( B_RB - B_RE ) == -10 ); }
+    { _ASSERT( ( B_RE - B_RB ) ==  10 ); }
+
+    { _ASSERT( ( R_FB - R_FE ) == -10 ); }
+    { _ASSERT( ( R_FE - R_FB ) ==  10 ); }
+    { _ASSERT( ( R_RB - R_RE ) == -10 ); }
+    { _ASSERT( ( R_RE - R_RB ) ==  10 ); }
+
+    { _ASSERT( ( ( F_FB + 1 ) - ( F_FE - 1 ) ) == -8 ); }
+    { _ASSERT( ( ( F_FE - 1 ) - ( F_FB + 1 ) ) ==  8 ); }
+    { _ASSERT( ( ( F_RB + 1 ) - ( F_RE - 1 ) ) == -8 ); }
+    { _ASSERT( ( ( F_RE - 1 ) - ( F_RB + 1 ) ) ==  8 ); }
+
+    { _ASSERT( ( ( B_FB + 1 ) - ( B_FE - 1 ) ) == -8 ); }
+    { _ASSERT( ( ( B_FE - 1 ) - ( B_FB + 1 ) ) ==  8 ); }
+    { _ASSERT( ( ( B_RB + 1 ) - ( B_RE - 1 ) ) == -8 ); }
+    { _ASSERT( ( ( B_RE - 1 ) - ( B_RB + 1 ) ) ==  8 ); }
+
+    { _ASSERT( ( ( R_FB + 1 ) - ( R_FE - 1 ) ) == -8 ); }
+    { _ASSERT( ( ( R_FE - 1 ) - ( R_FB + 1 ) ) ==  8 ); }
+    { _ASSERT( ( ( R_RB + 1 ) - ( R_RE - 1 ) ) == -8 ); }
+    { _ASSERT( ( ( R_RE - 1 ) - ( R_RB + 1 ) ) ==  8 ); }
+    // Check increment and decrement operators work.
+    { _ASSERT( *( FIter( F_FB )++ ) == 0 ); }
+    { _ASSERT( *( RIter( F_RB )++ ) == 9 ); }
+    { _ASSERT(  ( FIter( F_FE )-- ) == F_FE ); }
+    { _ASSERT(  ( RIter( F_RE )-- ) == F_RE ); }
+
+    { _ASSERT( *( FIter( B_FB )++ ) == 0 ); }
+    { _ASSERT( *( RIter( B_RB )++ ) == 9 ); }
+    { _ASSERT(  ( FIter( B_FE )-- ) == B_FE ); }
+    { _ASSERT(  ( RIter( B_RE )-- ) == B_RE ); }
+
+    { _ASSERT( *( FIter( R_FB )++ ) == 0 ); }
+    { _ASSERT( *( RIter( R_RB )++ ) == 9 ); }
+    { _ASSERT(  ( FIter( R_FE )-- ) == R_FE ); }
+    { _ASSERT(  ( RIter( R_RE )-- ) == R_RE ); }
+
+    { _ASSERT( *( ++FIter( F_FB ) ) == 1 ); }
+    { _ASSERT( *( ++RIter( F_RB ) ) == 8 ); }
+    { _ASSERT( *( --FIter( F_FE ) ) == 9 ); }
+    { _ASSERT( *( --RIter( F_RE ) ) == 0 ); }
+
+    { _ASSERT( *( ++FIter( B_FB ) ) == 1 ); }
+    { _ASSERT( *( ++RIter( B_RB ) ) == 8 ); }
+    { _ASSERT( *( --FIter( B_FE ) ) == 9 ); }
+    { _ASSERT( *( --RIter( B_RE ) ) == 0 ); }
+
+    { _ASSERT( *( ++FIter( R_FB ) ) == 1 ); }
+    { _ASSERT( *( ++RIter( R_RB ) ) == 8 ); }
+    { _ASSERT( *( --FIter( R_FE ) ) == 9 ); }
+    { _ASSERT( *( --RIter( R_RE ) ) == 0 ); }
+
+    { _ASSERT( F_FB >= F_FE == false ); }
+    { _ASSERT( F_FB >  F_FE == false ); }
+    { _ASSERT( F_FE >= F_FB == true  ); }
+    { _ASSERT( F_FE >  F_FB == true  ); }
+    { _ASSERT( F_FB >= F_FB == true  ); }
+    { _ASSERT( F_FB >  F_FB == false ); }
+    { _ASSERT( F_FE >= F_FE == true  ); }
+    { _ASSERT( F_FE >  F_FE == false ); }
+
+    { _ASSERT( B_FB >= B_FE == false ); }
+    { _ASSERT( B_FB >  B_FE == false ); }
+    { _ASSERT( B_FE >= B_FB == true  ); }
+    { _ASSERT( B_FE >  B_FB == true  ); }
+    { _ASSERT( B_FB >= B_FB == true  ); }
+    { _ASSERT( B_FB >  B_FB == false ); }
+    { _ASSERT( B_FE >= B_FE == true  ); }
+    { _ASSERT( B_FE >  B_FE == false ); }
+
+    { _ASSERT( R_FB >= R_FE == false ); }
+    { _ASSERT( R_FB >  R_FE == false ); }
+    { _ASSERT( R_FE >= R_FB == true  ); }
+    { _ASSERT( R_FE >  R_FB == true  ); }
+    { _ASSERT( R_FB >= R_FB == true  ); }
+    { _ASSERT( R_FB >  R_FB == false ); }
+    { _ASSERT( R_FE >= R_FE == true  ); }
+    { _ASSERT( R_FE >  R_FE == false ); }
 
 }

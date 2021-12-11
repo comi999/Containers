@@ -884,11 +884,19 @@ private:
 			int Length = 0;
 			Iter& Beg = *reinterpret_cast< Iter* >( a_Enumerable->m_Begin );
 			Iter& End = *reinterpret_cast< Iter* >( a_Enumerable->m_End );
+			
+			if ( Right == End )
+			{
+				for ( ; Left != End; ++Left, ++Length );
+				return reinterpret_cast< void* >( Length - a_Enumerable->m_Size - 1 );
+			}
 
 			if ( Left == End )
 			{
 				Left = Beg;
 				++Length;
+				for ( ; Left != Right; ++Left, ++Length );
+				return reinterpret_cast< void* >( Length );
 			}
 
 			for ( ; Left != Right && Left != End; ++Left, ++Length );
@@ -898,8 +906,10 @@ private:
 				return reinterpret_cast< void* >( Length );
 			}
 
-			for ( Left = Beg; Left != Right; ++Left, ++Length );
-			return reinterpret_cast< void* >( Length - a_Enumerable->m_Size );
+			Left = Beg;
+			++Length;
+			for ( ; Left != Right; ++Left, ++Length );
+			return reinterpret_cast< void* >( Length - a_Enumerable->m_Size - 1 );
 		}
 		case OperatorType::FEquality:
 		{
@@ -922,6 +932,38 @@ private:
 		}
 		case OperatorType::FGreaterEqual:
 		{
+			if constexpr ( _Is_random_iter_v< Iter > )
+			{
+				Iter& Left = *reinterpret_cast< Iter* >( a_ValueA );
+				Iter& Right = *reinterpret_cast< Iter* >( a_ValueB );
+
+				if ( Left == Right )
+				{
+					return reinterpret_cast< void* >( 1 );
+				}
+
+				if ( Left > Right )
+				{
+					return reinterpret_cast< void* >( 2 );
+				}
+			}
+
+			Iter Left   = *reinterpret_cast< Iter* >( a_ValueA );
+			Iter& Right = *reinterpret_cast< Iter* >( a_ValueB );
+			Iter& End = *reinterpret_cast< Iter* >( a_Enumerable->m_End );
+
+			if ( Left == Right )
+			{
+				return reinterpret_cast< void* >( 1 );
+			}
+
+			for ( ; Left != Right && Left != End; ++Left );
+
+			if ( Left == End && Left != Right )
+			{
+				return reinterpret_cast< void* >( 2 );
+			}
+
 			return nullptr;
 		}
 		case OperatorType::RGreaterEqual:
