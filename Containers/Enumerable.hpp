@@ -972,7 +972,7 @@ public:
 		void*            m_Iterator;
 	};
 
-	template < typename Iter, typename = EnableIfCorrectIter< Iter > >
+	template < typename Iter > //, typename = EnableIfCorrectIter< Iter > >
 	Enumerable( Iter a_Begin, Iter a_End )
 		: m_Begin( new Iter( a_Begin ) )
 		, m_End( new Iter( a_End ) )
@@ -980,7 +980,7 @@ public:
 		, m_Operator( Operator< Iter > )
 	{ }
 
-	template < typename Iter, typename = EnableIfCorrectIter< Iter > >
+	template < typename Iter > //, typename = EnableIfCorrectIter< Iter > >
 	Enumerable( Iter a_Begin, Iter a_End, size_t a_Size )
 		: m_Begin( new Iter( a_Begin ) )
 		, m_End( new Iter( a_End ) )
@@ -988,7 +988,7 @@ public:
 		, m_Operator( Operator< Iter > )
 	{ }
 
-	template < typename Container, typename = EnableIfContainer< Container > >
+	template < typename Container > //, typename = EnableIfContainer< Container > >
 	Enumerable( Container& a_Container )
 		: m_Begin( new typename Container::iterator( a_Container.begin() ) )
 		, m_End( new typename Container::iterator( a_Container.end() ) )

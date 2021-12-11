@@ -6,8 +6,14 @@
 #include <list>
 #include "Delegate.hpp"
 #include <map>
+#include "ContainerTraits.hpp"
 
 using namespace std;
+
+using t = ContainerTraits::GetIterator< vector< int > >;
+
+
+using ti = ContainerTraits::GetIteratorType< t >;
 
 template < typename T >
 struct Cont
