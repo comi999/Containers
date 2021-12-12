@@ -646,22 +646,22 @@ public:
 		}
 	}
 
-	inline auto At( size_t a_Position )
+	inline auto& At( size_t a_Position )
 	{
 		return Base::at( a_Position );
 	}
 
-	inline constexpr auto At( size_t a_Position ) const
+	inline constexpr auto& At( size_t a_Position ) const
 	{
 		return Base::at( a_Position );
 	}
 
-	inline auto Back()
+	inline auto& Back()
 	{
 		return Base::back();
 	}
 
-	inline auto Back() const
+	inline auto& Back() const
 	{
 		return Base::back();
 	}
@@ -1157,12 +1157,12 @@ public:
 		}
 	}
 
-	inline auto Front()
+	inline auto& Front()
 	{
 		return Base::front();
 	}
 
-	inline constexpr auto Front() const
+	inline constexpr auto& Front() const
 	{
 		return Base::front();
 	}
@@ -1286,7 +1286,7 @@ public:
 		return *reinterpret_cast< const Array< ValueType, LENGTH >* >( Base::data() + OFFSET );
 	}
 
-	inline auto Swap( Array< ValueType, SIZE >& a_Array )
+	inline void Swap( Array< ValueType, SIZE >& a_Array )
 	{
 		return Base::swap( a_Array.Underlying() );
 	}
@@ -1454,16 +1454,6 @@ public:
 		return Base::begin();
 	}
 
-	inline RIterator RBegin()
-	{
-		return Base::rbegin();
-	}
-
-	inline CRIterator RBegin() const
-	{
-		return Base::rbegin();
-	}
-
 	inline CIterator CBegin()
 	{
 		return Base::cbegin();
@@ -1472,6 +1462,16 @@ public:
 	inline CIterator CBegin() const
 	{
 		return Base::cbegin();
+	}
+
+	inline RIterator RBegin()
+	{
+		return Base::rbegin();
+	}
+
+	inline CRIterator RBegin() const
+	{
+		return Base::rbegin();
 	}
 
 	inline CRIterator CRBegin()
@@ -1494,16 +1494,6 @@ public:
 		return Base::end();
 	}
 
-	inline RIterator REnd()
-	{
-		return Base::rend();
-	}
-
-	inline CRIterator REnd() const
-	{
-		return Base::rend();
-	}
-
 	inline CIterator CEnd()
 	{
 		return Base::cend();
@@ -1512,6 +1502,16 @@ public:
 	inline CIterator CEnd() const
 	{
 		return Base::cend();
+	}
+
+	inline RIterator REnd()
+	{
+		return Base::rend();
+	}
+
+	inline CRIterator REnd() const
+	{
+		return Base::rend();
 	}
 
 	inline CRIterator CREnd()
@@ -2125,12 +2125,12 @@ public:
 		}
 	}
 
-	inline ValueType& Front()
+	inline auto& Front()
 	{
 		return Base::front();
 	}
 
-	inline const ValueType& Front() const
+	inline const auto& Front() const
 	{
 		return Base::front();
 	}

@@ -3,6 +3,7 @@
 #include <iterator>
 
 #include "ContainerTraits.hpp"
+#include "Reference.hpp"
 
 using namespace std;
 
@@ -57,7 +58,7 @@ public:
 
 	private:
 
-		Iterator( Enumerable< ValueType >* a_Enumerable, void* a_Iterator )
+		Iterator( const Enumerable< ValueType >* a_Enumerable, void* a_Iterator )
 			: m_Enumerable( a_Enumerable )
 			, m_Iterator( a_Iterator )
 		{ }
@@ -253,8 +254,8 @@ public:
 		friend class Enumerable< ValueType >;
 		friend class Enumerable< ValueType >::RIterator;
 
-		Enumerable< ValueType >* m_Enumerable;
-		void*            m_Iterator;
+		const Enumerable< ValueType >* m_Enumerable;
+		void*						   m_Iterator;
 
 	};
 
@@ -270,7 +271,7 @@ public:
 
 	private:
 
-		RIterator( Enumerable< ValueType >* a_Enumerable, void* a_Iterator )
+		RIterator( const Enumerable< ValueType >* a_Enumerable, void* a_Iterator )
 			: m_Enumerable( a_Enumerable )
 			, m_Iterator( a_Iterator )
 		{ }
@@ -466,8 +467,8 @@ public:
 		friend class Enumerable< ValueType >;
 		friend class Enumerable< ValueType >::Iterator;
 
-		Enumerable< ValueType >* m_Enumerable;
-		void*            m_Iterator;
+		const Enumerable< ValueType >* m_Enumerable;
+		void*						   m_Iterator;
 	};
 
 	class CIterator
@@ -482,7 +483,7 @@ public:
 
 	private:
 
-		CIterator( Enumerable< ValueType >* a_Enumerable, void* a_Iterator )
+		CIterator( const Enumerable< ValueType >* a_Enumerable, void* a_Iterator )
 			: m_Enumerable( a_Enumerable )
 			, m_Iterator( a_Iterator )
 		{ }
@@ -703,8 +704,8 @@ public:
 		friend class Enumerable< ValueType >::RIterator;
 		friend class Enumerable< ValueType >::CRIterator;
 
-		Enumerable< ValueType >* m_Enumerable;
-		void*            m_Iterator;
+		const Enumerable< ValueType >* m_Enumerable;
+		void*						   m_Iterator;
 
 	};
 
@@ -720,7 +721,7 @@ public:
 
 	private:
 
-		CRIterator( Enumerable< ValueType >* a_Enumerable, void* a_Iterator )
+		CRIterator( const Enumerable< ValueType >* a_Enumerable, void* a_Iterator )
 			: m_Enumerable( a_Enumerable )
 			, m_Iterator( a_Iterator )
 		{ }
@@ -941,8 +942,8 @@ public:
 		friend class Enumerable< ValueType >::RIterator;
 		friend class Enumerable< ValueType >::CIterator;
 
-		Enumerable< ValueType >* m_Enumerable;
-		void*            m_Iterator;
+		const Enumerable< ValueType >* m_Enumerable;
+		void*                          m_Iterator;
 	};
 
 	Enumerable( Enumerable& a_Enumerable )
@@ -992,7 +993,7 @@ public:
 	inline void Assign( const ValueType& a_Value )
 	{
 		Iterator Beg( Begin() );
-		Iterator End( this, m_End );
+		Iterator End( End() );
 
 		for ( ; Beg != End; ++Beg )
 		{
@@ -1002,12 +1003,231 @@ public:
 
 	inline void Assign( size_t a_Position, size_t a_Length, const ValueType& a_Value )
 	{
+		Iterator Beg( Begin() += a_Position );
 
+		for ( ; a_Length > 0; --a_Length, ++Beg )
+		{
+			*Beg = a_Value;
+		}
 	}
 
 	inline void Assign( Iterator a_Begin, const Iterator& a_End, const ValueType& a_Value )
 	{
+		for ( ; a_Begin != a_End; ++a_Begin )
+		{
+			*a_Begin = a_Value;
+		}
+	}
 
+	inline auto& At( size_t a_Position )
+	{
+		return *( Begin() + a_Position );
+	}
+
+	inline const auto& At( size_t a_Position ) const
+	{
+		return *( Begin() + a_Position );
+	}
+
+	inline auto& Back()
+	{
+		return *( End() - 1 );
+	}
+
+	inline const auto& Back() const
+	{
+		return *( End() - 1 );
+	}
+
+	inline void CopyTo( Enumerable< ValueType >& a_Enumerable ) const
+	{
+		size_t Length = m_Size < a_Enumerable.m_Size ? m_Size : a_Enumerable.m_Size;
+		CIterator BegA( Begin() );
+		Iterator BegB( a_Enumerable.Begin() );
+
+		for ( ; Length > 0; --Length, ++BegA, ++BegB )
+		{
+			*BegB = *BegA;
+		}
+	}
+
+	template < typename... T >
+	inline auto& EmplaceAt( Iterator& a_Where, T&&... a_Args )
+	{
+		return *( new ( &*a_Where ) ValueType( forward< T >( a_Args )... ) );
+	}
+
+	template < typename... T >
+	inline auto& EmplaceAt( Iterator&& a_Where, T&&... a_Args )
+	{
+		return *( new ( &*a_Where ) ValueType( forward< T >( a_Args )... ) );
+	}
+
+	inline auto Empty() const
+	{
+		return !m_Size;
+	}
+
+	inline bool Equals( const Enumerable< ValueType >& a_Enumerable )
+	{
+		if ( m_Size != a_Enumerable.m_Size )
+		{
+			return false;
+		}
+
+		size_t Length = m_Size;
+		CIterator BegA( Begin() );
+		CIterator BegB( a_Enumerable.Begin() );
+		
+		for ( ; Length > 0; --Length, ++BegA, ++BegB )
+		{
+			if ( *BegA != *BegB )
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool Exists( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		size_t Length = m_Size;
+		CIterator Beg( Begin() );
+
+		for ( ; Length > 0; --Length, ++Beg )
+		{
+			if ( a_Predicate.Invoke( *Beg ) )
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	auto Find( const Predicate< const ValueType& >& a_Predicate )
+	{
+		size_t Length = m_Size;
+		Iterator Beg( Begin() );
+
+		for ( ; Length > 0; --Length, ++Beg )
+		{
+			ValueType& Value = *Beg;
+
+			if ( a_Predicate.Invoke( Value ) )
+			{
+				return Reference< ValueType >( Value );
+			}
+		}
+
+		return Reference< ValueType >();
+	}
+
+	auto Find( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		size_t Length = m_Size;
+		CIterator Beg( Begin() );
+
+		for ( ; Length > 0; --Length, ++Beg )
+		{
+			const ValueType& Value = *Beg;
+
+			if ( a_Predicate.Invoke( Value ) )
+			{
+				return CReference< ValueType >( Value );
+			}
+		}
+
+		return CReference< ValueType >();
+	}
+
+	auto Find( Iterator a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate )
+	{
+		for ( ; a_Begin != a_End; ++a_Begin )
+		{
+			ValueType& Value = *a_Begin;
+
+			if ( a_Predicate.Invoke( Value ) )
+			{
+				return Reference< ValueType >( Value );
+			}
+		}
+
+		return Reference< ValueType >();
+	}
+
+	auto Find( CIterator a_Begin, const CIterator& a_End, const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		for ( ; a_Begin != a_End; ++a_Begin )
+		{
+			const ValueType& Value = *a_Begin;
+
+			if ( a_Predicate.Invoke( Value ) )
+			{
+				return CReference< ValueType >( Value );
+			}
+		}
+
+		return CReference< ValueType >();
+	}
+
+	auto FindIterator( const Predicate< const ValueType& >& a_Predicate )
+	{
+		size_t Length = m_Size;
+		Iterator Beg( Begin() );
+
+		for ( ; Length > 0; --Length, ++Beg )
+		{
+			if ( a_Predicate.Invoke( *Beg ) )
+			{
+				return Beg;
+			}
+		}
+
+		return End();
+	}
+
+	auto FindIterator( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		size_t Length = m_Size;
+		CIterator Beg( Begin() );
+
+		for ( ; Length > 0; --Length, ++Beg )
+		{
+			if ( a_Predicate.Invoke( *Beg ) )
+			{
+				return Beg;
+			}
+		}
+
+		return End();
+	}
+
+	auto FindIterator( Iterator a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate )
+	{
+		for ( ; a_Begin != a_End; ++a_Begin )
+		{
+			if ( a_Predicate.Invoke( *a_Begin ) )
+			{
+				return a_Begin;
+			}
+		}
+
+		return End();
+	}
+
+	auto FindIterator( CIterator a_Begin, const CIterator& a_End, const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		for ( ; a_Begin != a_End; ++a_Begin )
+		{
+			if ( a_Predicate.Invoke( *a_Begin ) )
+			{
+				return a_Begin;
+			}
+		}
+
+		return End();
 	}
 
 	inline size_t Size() const
@@ -1100,7 +1320,7 @@ public:
 private:
 
 	template < typename Iter >
-	static void* Operator( void* a_ValueA, void* a_ValueB, Enumerable< ValueType >* a_Enumerable, OperatorType a_OperatorType )
+	static void* Operator( void* a_ValueA, void* a_ValueB, const Enumerable< ValueType >* a_Enumerable, OperatorType a_OperatorType )
 	{
 		switch ( a_OperatorType )
 		{
@@ -1692,5 +1912,5 @@ private:
 	void*    m_Begin;
 	void*    m_End;
 	size_t   m_Size;
-	void* ( *m_Operator )( void*, void*, Enumerable< ValueType >*, OperatorType );
+	void* ( *m_Operator )( void*, void*, const Enumerable< ValueType >*, OperatorType );
 };

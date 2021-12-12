@@ -550,20 +550,42 @@ void RunTests()
     { _ASSERT( ( R_RE - 1 ) < ( R_RE - 1 ) == false ); }
 }
 
+struct Struct
+{
+    int _a, _b;
+    Struct( int a, int b )
+    {
+        _a = a;
+        _b = b;
+    }
+};
+
 int main()
 {
 
     //RunTests();
     Cont< int > c;
     Array< int, 10 > arr = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    vector< int > v = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    vector< int > v0 = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    vector< int > v1 = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
     list< int > l = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
     set< int > s = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    Enumerable< int > en1( l );
+    vector< Struct > structs = { { 0, 0 }, { 1, 1 } };
 
-    en1.Assign( 10 );
-    
-    for ( auto iter = en1.CRBegin(); iter < en1.CREnd(); ++iter )
+    Enumerable< int > en0( v0 );
+    Enumerable< int > en1( v1 );
+    Enumerable< Struct > en2( structs );
+    auto beg = en2.Begin();
+
+    en2.EmplaceAt( en2.Begin() + 0, 100, 99 );
+
+    en0.CopyTo( en1 );
+
+    int val = en0.Find( en0.Begin() + 3, en0.End(), []( const int& value ) { return value > 5; } );
+
+    en1.Assign( en1.Begin() + 3, en1.End(), 100 );
+
+    for ( auto iter = en1.Begin(); iter < en1.End(); ++iter )
     {
         cout << *iter << endl;
     }
