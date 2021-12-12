@@ -1449,7 +1449,7 @@ public:
 		return Base::begin();
 	}
 
-	inline Iterator Begin() const
+	inline CIterator Begin() const
 	{
 		return Base::begin();
 	}
@@ -1459,7 +1459,7 @@ public:
 		return Base::rbegin();
 	}
 
-	inline RIterator RBegin() const
+	inline CRIterator RBegin() const
 	{
 		return Base::rbegin();
 	}
@@ -1489,7 +1489,7 @@ public:
 		return Base::end();
 	}
 
-	inline Iterator End() const
+	inline CIterator End() const
 	{
 		return Base::end();
 	}
@@ -1499,7 +1499,7 @@ public:
 		return Base::rend();
 	}
 
-	inline RIterator REnd() const
+	inline CRIterator REnd() const
 	{
 		return Base::rend();
 	}

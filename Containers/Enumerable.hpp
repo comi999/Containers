@@ -6,7 +6,7 @@
 
 using namespace std;
 
-template < typename T >
+template < typename ValueType >
 class Enumerable
 {
 private:
@@ -51,13 +51,13 @@ public:
 
 		using iterator_category = random_access_iterator_tag;
 		using difference_type   = ptrdiff_t;
-		using value_type        = T;
+		using value_type        = ValueType;
 		using pointer           = value_type*;
 		using reference         = value_type&;
 
 	private:
 
-		Iterator( Enumerable< T >* a_Enumerable, void* a_Iterator )
+		Iterator( Enumerable< ValueType >* a_Enumerable, void* a_Iterator )
 			: m_Enumerable( a_Enumerable )
 			, m_Iterator( a_Iterator )
 		{ }
@@ -152,24 +152,24 @@ public:
 			return *this;
 		}
 
-		inline T& operator*()
+		inline ValueType& operator*()
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
+			return *reinterpret_cast< ValueType* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
 		}
 
-		inline const T& operator*() const
+		inline const ValueType& operator*() const
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
+			return *reinterpret_cast< ValueType* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
 		}
 
-		inline T* operator->()
+		inline ValueType* operator->()
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
+			return *reinterpret_cast< ValueType* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
 		}
 
-		inline const T* operator->() const
+		inline const ValueType* operator->() const
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
+			return *reinterpret_cast< ValueType* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
 		}
 
 		inline bool operator==( const Iterator& a_Iterator ) const
@@ -250,10 +250,10 @@ public:
 
 	private:
 
-		friend class Enumerable< T >;
-		friend class Enumerable< T >::RIterator;
+		friend class Enumerable< ValueType >;
+		friend class Enumerable< ValueType >::RIterator;
 
-		Enumerable< T >* m_Enumerable;
+		Enumerable< ValueType >* m_Enumerable;
 		void*            m_Iterator;
 
 	};
@@ -264,13 +264,13 @@ public:
 
 		using iterator_category = random_access_iterator_tag;
 		using difference_type = ptrdiff_t;
-		using value_type = T;
+		using value_type = ValueType;
 		using pointer = value_type*;
 		using reference = value_type&;
 
 	private:
 
-		RIterator( Enumerable< T >* a_Enumerable, void* a_Iterator )
+		RIterator( Enumerable< ValueType >* a_Enumerable, void* a_Iterator )
 			: m_Enumerable( a_Enumerable )
 			, m_Iterator( a_Iterator )
 		{ }
@@ -365,24 +365,24 @@ public:
 			return *this;
 		}
 
-		inline T& operator*()
+		inline ValueType& operator*()
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
+			return *reinterpret_cast< ValueType* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
 		}
 
-		inline const T& operator*() const
+		inline const ValueType& operator*() const
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
+			return *reinterpret_cast< ValueType* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
 		}
 
-		inline T* operator->()
+		inline ValueType* operator->()
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
+			return *reinterpret_cast< ValueType* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
 		}
 
-		inline const T* operator->() const
+		inline const ValueType* operator->() const
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
+			return *reinterpret_cast< ValueType* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
 		}
 
 		inline bool operator==( const RIterator& a_RIterator ) const
@@ -463,10 +463,10 @@ public:
 
 	private:
 
-		friend class Enumerable< T >;
-		friend class Enumerable< T >::Iterator;
+		friend class Enumerable< ValueType >;
+		friend class Enumerable< ValueType >::Iterator;
 
-		Enumerable< T >* m_Enumerable;
+		Enumerable< ValueType >* m_Enumerable;
 		void*            m_Iterator;
 	};
 
@@ -476,13 +476,13 @@ public:
 
 		using iterator_category = random_access_iterator_tag;
 		using difference_type = ptrdiff_t;
-		using value_type = const T;
+		using value_type = const ValueType;
 		using pointer = value_type*;
 		using reference = value_type&;
 
 	private:
 
-		CIterator( Enumerable< T >* a_Enumerable, void* a_Iterator )
+		CIterator( Enumerable< ValueType >* a_Enumerable, void* a_Iterator )
 			: m_Enumerable( a_Enumerable )
 			, m_Iterator( a_Iterator )
 		{ }
@@ -610,14 +610,14 @@ public:
 			return *this;
 		}
 
-		inline const T& operator*() const
+		inline const ValueType& operator*() const
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
+			return *reinterpret_cast< ValueType* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
 		}
 
-		inline const T* operator->() const
+		inline const ValueType* operator->() const
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
+			return *reinterpret_cast< ValueType* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDereference ) );
 		}
 
 		inline bool operator==( const Iterator& a_Iterator ) const
@@ -698,12 +698,12 @@ public:
 
 	private:
 
-		friend class Enumerable< T >;
-		friend class Enumerable< T >::Iterator;
-		friend class Enumerable< T >::RIterator;
-		friend class Enumerable< T >::CRIterator;
+		friend class Enumerable< ValueType >;
+		friend class Enumerable< ValueType >::Iterator;
+		friend class Enumerable< ValueType >::RIterator;
+		friend class Enumerable< ValueType >::CRIterator;
 
-		Enumerable< T >* m_Enumerable;
+		Enumerable< ValueType >* m_Enumerable;
 		void*            m_Iterator;
 
 	};
@@ -714,13 +714,13 @@ public:
 
 		using iterator_category = random_access_iterator_tag;
 		using difference_type = ptrdiff_t;
-		using value_type = const T;
+		using value_type = const ValueType;
 		using pointer = value_type*;
 		using reference = value_type&;
 
 	private:
 
-		CRIterator( Enumerable< T >* a_Enumerable, void* a_Iterator )
+		CRIterator( Enumerable< ValueType >* a_Enumerable, void* a_Iterator )
 			: m_Enumerable( a_Enumerable )
 			, m_Iterator( a_Iterator )
 		{ }
@@ -848,14 +848,14 @@ public:
 			return *this;
 		}
 
-		inline const T& operator*() const
+		inline const ValueType& operator*() const
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
+			return *reinterpret_cast< ValueType* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
 		}
 
-		inline const T* operator->() const
+		inline const ValueType* operator->() const
 		{
-			return *reinterpret_cast< T* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
+			return *reinterpret_cast< ValueType* >( m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDereference ) );
 		}
 
 		inline bool operator==( const RIterator& a_RIterator ) const
@@ -936,14 +936,28 @@ public:
 
 	private:
 
-		friend class Enumerable< T >;
-		friend class Enumerable< T >::Iterator;
-		friend class Enumerable< T >::RIterator;
-		friend class Enumerable< T >::CIterator;
+		friend class Enumerable< ValueType >;
+		friend class Enumerable< ValueType >::Iterator;
+		friend class Enumerable< ValueType >::RIterator;
+		friend class Enumerable< ValueType >::CIterator;
 
-		Enumerable< T >* m_Enumerable;
+		Enumerable< ValueType >* m_Enumerable;
 		void*            m_Iterator;
 	};
+
+	Enumerable( Enumerable& a_Enumerable )
+		: m_Begin( a_Enumerable.m_Operator( a_Enumerable.m_Begin, 0, 0, OperatorType::FClone ) )
+		, m_End( a_Enumerable.m_Operator( a_Enumerable.m_End, 0, 0, OperatorType::FClone ) )
+		, m_Size( a_Enumerable.m_Size )
+		, m_Operator( a_Enumerable.m_Operator )
+	{ }
+
+	Enumerable( Enumerable&& a_Enumerable )
+		: m_Begin( a_Enumerable.m_Begin )
+		, m_End( a_Enumerable.m_End )
+		, m_Size( a_Enumerable.m_Size )
+		, m_Operator( a_Enumerable.m_Operator )
+	{ }
 
 	template < typename Iter >
 	Enumerable( Iter a_Begin, Iter a_End )
@@ -961,10 +975,10 @@ public:
 		, m_Operator( Operator< Iter > )
 	{ }
 
-	template < typename Container, typename Iter = ContainerTraits::GetIter< Container >, typename = ContainerTraits::EnableIfContainer< Container, T > >
+	template < typename Container, typename Iter = ContainerTraits::GetIter< Container >, typename = ContainerTraits::EnableIfContainer< Container, ValueType > >
 	Enumerable( Container& a_Container )
-		: m_Begin( ContainerTraits::Begin( a_Container ) )
-		, m_End( ContainerTraits::End( a_Container ) )
+		: m_Begin( new Iter( ContainerTraits::Begin( a_Container ) ) )
+		, m_End( new Iter( ContainerTraits::End( a_Container ) ) )
 		, m_Size( ContainerTraits::Size( a_Container ) )
 		, m_Operator( Operator< Iter > )
 	{ }
@@ -975,14 +989,41 @@ public:
 		m_Operator( m_End,   0, 0, OperatorType::FDelete );
 	}
 
+	inline void Assign( const ValueType& a_Value )
+	{
+		Iterator Beg( Begin() );
+		Iterator End( this, m_End );
+
+		for ( ; Beg != End; ++Beg )
+		{
+			*Beg = a_Value;
+		}
+	}
+
+	inline void Assign( size_t a_Position, size_t a_Length, const ValueType& a_Value )
+	{
+
+	}
+
+	inline void Assign( Iterator a_Begin, const Iterator& a_End, const ValueType& a_Value )
+	{
+
+	}
+
+	inline size_t Size() const
+	{
+		return m_Size;
+	}
+
+	#pragma region Iterator
 	inline Iterator Begin()
 	{
 		return Iterator( this, m_Operator( 0, 0, this, OperatorType::FBegin ) );
 	}
 
-	inline const Iterator Begin() const
+	inline CIterator Begin() const
 	{
-		return Iterator( this, m_Operator( 0, 0, this, OperatorType::FBegin ) );
+		return CIterator( this, m_Operator( 0, 0, this, OperatorType::FBegin ) );
 	}
 
 	inline CIterator CBegin()
@@ -990,7 +1031,7 @@ public:
 		return CIterator( this, m_Operator( 0, 0, this, OperatorType::FBegin ) );
 	}
 
-	inline const CIterator CBegin() const
+	inline CIterator CBegin() const
 	{
 		return CIterator( this, m_Operator( 0, 0, this, OperatorType::FBegin ) );
 	}
@@ -1000,9 +1041,9 @@ public:
 		return RIterator( this, m_Operator( 0, 0, this, OperatorType::RBegin ) );
 	}
 
-	inline const RIterator RBegin() const
+	inline CRIterator RBegin() const
 	{
-		return RIterator( this, m_Operator( 0, 0, this, OperatorType::RBegin ) );
+		return CRIterator( this, m_Operator( 0, 0, this, OperatorType::RBegin ) );
 	}
 
 	inline CRIterator CRBegin()
@@ -1010,7 +1051,7 @@ public:
 		return CRIterator( this, m_Operator( 0, 0, this, OperatorType::RBegin ) );
 	}
 
-	inline const CRIterator CRBegin() const
+	inline CRIterator CRBegin() const
 	{
 		return CRIterator( this, m_Operator( 0, 0, this, OperatorType::RBegin ) );
 	}
@@ -1020,9 +1061,9 @@ public:
 		return Iterator( this, m_Operator( 0, 0, this, OperatorType::FEnd ) );
 	}
 
-	inline const Iterator End() const
+	inline CIterator End() const
 	{
-		return Iterator( this, m_Operator( 0, 0, this, OperatorType::FEnd ) );
+		return CIterator( this, m_Operator( 0, 0, this, OperatorType::FEnd ) );
 	}
 
 	inline CIterator CEnd()
@@ -1030,7 +1071,7 @@ public:
 		return CIterator( this, m_Operator( 0, 0, this, OperatorType::FEnd ) );
 	}
 
-	inline const CIterator CEnd() const
+	inline CIterator CEnd() const
 	{
 		return CIterator( this, m_Operator( 0, 0, this, OperatorType::FEnd ) );
 	}
@@ -1040,9 +1081,9 @@ public:
 		return RIterator( this, m_Operator( 0, 0, this, OperatorType::REnd ) );
 	}
 
-	inline const RIterator REnd() const
+	inline CRIterator REnd() const
 	{
-		return RIterator( this, m_Operator( 0, 0, this, OperatorType::REnd ) );
+		return CRIterator( this, m_Operator( 0, 0, this, OperatorType::REnd ) );
 	}
 
 	inline CRIterator CREnd()
@@ -1050,20 +1091,16 @@ public:
 		return CRIterator( this, m_Operator( 0, 0, this, OperatorType::REnd ) );
 	}
 
-	inline const CRIterator CREnd() const
+	inline CRIterator CREnd() const
 	{
 		return CRIterator( this, m_Operator( 0, 0, this, OperatorType::REnd ) );
 	}
-
-	inline size_t Size() const
-	{
-		return m_Size;
-	}
+	#pragma endregion
 
 private:
 
 	template < typename Iter >
-	static void* Operator( void* a_ValueA, void* a_ValueB, Enumerable< T >* a_Enumerable, OperatorType a_OperatorType )
+	static void* Operator( void* a_ValueA, void* a_ValueB, Enumerable< ValueType >* a_Enumerable, OperatorType a_OperatorType )
 	{
 		switch ( a_OperatorType )
 		{
@@ -1150,7 +1187,7 @@ private:
 
 			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
 			{
-				return new reverse_iterator< Iter >( *reinterpret_cast< Iter* >( a_Enumerable->m_End ) );
+				return new reverse_iterator< Iter >( End );
 			}
 
 			Iter& Beg = *reinterpret_cast< Iter* >( a_Enumerable->m_Begin );
@@ -1271,16 +1308,16 @@ private:
 		}
 		case OperatorType::FDereference:
 		{
-			return &**reinterpret_cast< Iter* >( a_ValueA );
+			return const_cast< ValueType* >( &**reinterpret_cast< Iter* >( a_ValueA ) );
 		}
 		case OperatorType::RDereference:
 		{
 			if constexpr ( _Is_bidi_iter_v< Iter > || _Is_random_iter_v< Iter > )
 			{
-				return &**reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA );
+				return const_cast< ValueType* >( &**reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA ) );
 			}
 
-			return &**reinterpret_cast< Iter* >( a_ValueA );
+			return const_cast< ValueType* >( &**reinterpret_cast< Iter* >( a_ValueA ) );
 		}
 		case OperatorType::FDistance:
 		{
@@ -1309,7 +1346,7 @@ private:
 					return reinterpret_cast< void* >( -Length );
 				}
 
-				for ( Left = *reinterpret_cast< const Iter* >( a_Enumerable->m_Begin ); Left != Right; ++Left, ++Length );
+				for ( Left = *reinterpret_cast< Iter* >( a_Enumerable->m_Begin ); Left != Right; ++Left, ++Length );
 
 				return reinterpret_cast< void* >( a_Enumerable->m_Size - Length );
 			}
@@ -1579,8 +1616,8 @@ private:
 
 			if constexpr ( _Is_bidi_iter_v< Iter > )
 			{
-				auto Left = reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA )->base();
-				auto Right = reinterpret_cast< reverse_iterator< Iter >* >( a_ValueB )->base();
+				Iter Left = reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA )->base();
+				Iter Right = reinterpret_cast< reverse_iterator< Iter >* >( a_ValueB )->base();
 
 				if ( Left == Right )
 				{
@@ -1655,5 +1692,5 @@ private:
 	void*    m_Begin;
 	void*    m_End;
 	size_t   m_Size;
-	void* ( *m_Operator )( void*, void*, Enumerable< T >*, OperatorType );
+	void* ( *m_Operator )( void*, void*, Enumerable< ValueType >*, OperatorType );
 };

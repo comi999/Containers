@@ -29,6 +29,11 @@ struct Cont
             element = elem;
         }
 
+        iterator( iterator& iter )
+        {
+            element = iter.element;
+        }
+
         iterator( const iterator& iter )
         {
             element = iter.element;
@@ -76,6 +81,73 @@ struct Cont
         T* element;
     };
 
+    struct citerator
+    {
+        using iterator_category = forward_iterator_tag;
+        using difference_type = ptrdiff_t;
+        using value_type = const T;
+        using pointer = value_type*;
+        using reference = value_type&;
+
+        citerator() = default;
+
+        citerator( const T* elem )
+        {
+            element = elem;
+        }
+
+        citerator( citerator& iter )
+        {
+            element = iter.element;
+        }
+
+        citerator( const citerator& iter )
+        {
+            element = iter.element;
+        }
+
+        citerator operator++( int )
+        {
+            T* temp = element;
+            element = element + 1;
+            return citerator( temp );
+        }
+
+        citerator& operator++()
+        {
+            element = element + 1;
+            return *this;
+        }
+
+        const citerator& operator++() const
+        {
+            element = element + 1;
+            return *this;
+        }
+
+        const T& operator*()
+        {
+            return *element;
+        }
+
+        const T* operator->()
+        {
+            return nullptr;
+        }
+
+        bool operator==( const citerator& other ) const
+        {
+            return element == other.element;
+        }
+
+        bool operator!=( const citerator& other ) const
+        {
+            return element != other.element;
+        }
+
+        const T* element;
+    };
+
     Cont()
     {
         for ( int i = 0; i < 10; ++i )
@@ -86,12 +158,27 @@ struct Cont
 
     iterator Begin()
     {
-        return iterator( num );
+        return iterator( &num[ 0 ] );
+    }
+
+    citerator Begin() const
+    {
+        return citerator( &num[ 0 ] );
     }
 
     iterator End()
     {
-        return iterator( &num[10] );
+        return iterator( &num[ 10 ] );
+    }
+
+    citerator End() const
+    {
+        return citerator( &num[ 10 ] );
+    }
+
+    size_t Size() const
+    {
+        return 10;
     }
 
     T num[10];
@@ -465,13 +552,18 @@ void RunTests()
 
 int main()
 {
+
     //RunTests();
     Cont< int > c;
     Array< int, 10 > arr = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    vector< int > v = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    list< int > l = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    set< int > s = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    Enumerable< int > en1( l );
 
-    Enumerable< int > en( arr );
-
-    for ( auto iter = en.RBegin(); iter < en.REnd(); ++iter )
+    en1.Assign( 10 );
+    
+    for ( auto iter = en1.CRBegin(); iter < en1.CREnd(); ++iter )
     {
         cout << *iter << endl;
     }
