@@ -468,12 +468,11 @@ int main()
     //RunTests();
     Cont< int > c;
     Array< int, 10 > arr = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    auto en = arr.AsEnumerable();
-    //Enumerable< int > en( vector< int >() );
+
+    Enumerable< int > en( arr );
 
     for ( auto iter = en.RBegin(); iter < en.REnd(); ++iter )
     {
         cout << *iter << endl;
     }
 }
-

@@ -961,13 +961,10 @@ public:
 		, m_Operator( Operator< Iter > )
 	{ }
 
-	template < typename Container, typename Iter = ContainerTraits::GetIter< Container >, typename = void_t< 
-		ContainerTraits::EnableIfIterable< Container >, 
-		ContainerTraits::EnableIfIterType< Iter, T >, 
-		ContainerTraits::EnableIfSizeable< Container > > >
+	template < typename Container, typename Iter = ContainerTraits::GetIter< Container >, typename = ContainerTraits::EnableIfContainer< Container, T > >
 	Enumerable( Container& a_Container )
-		: m_Begin( nullptr )//new Iter( ContainerTraits::Begin( a_Container ) ) )
-		, m_End( nullptr )//new Iter( ) )//ContainerTraits::End( a_Container ) ) )
+		: m_Begin( ContainerTraits::Begin( a_Container ) )
+		, m_End( ContainerTraits::End( a_Container ) )
 		, m_Size( ContainerTraits::Size( a_Container ) )
 		, m_Operator( Operator< Iter > )
 	{ }

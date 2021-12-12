@@ -1,7 +1,5 @@
 #pragma once
-#include <vector>
-#include <stack>
-#include <array>
+#include <type_traits>
 
 using namespace std;
 
@@ -42,90 +40,99 @@ namespace ContainerTraits
             }
         };
 
-        template < typename Container, typename = void >
-        struct IsIterableImpl
-        {
-            static constexpr bool Value = false;
-        };
-
-        template < typename Container >
-        struct IsIterableImpl< Container, void_t< decltype( begin( declval< Container >() ) ), decltype( end( declval< Container >() ) ) > >
-        {
-            static constexpr bool Value = true;
-        };
-
-        /*template < typename Container, typename = void >
-        struct HasBeginImpl
-        {
-            static constexpr bool Value = false;
-        };
-
-        template < typename Container >
-        struct HasBeginImpl < Container, void_t< decltype( &Container::Begin ), decltype( &Container::End ) > >
-        {
-            static constexpr bool Value = true;
-        };*/
-
         template < typename Container >
         struct HasBeginImpl
         {
         private:
+            template < typename U > static char test( decltype( begin( std::declval< U >() ) )* );
             template < typename U > static char test( decltype( &U::Begin ) );
-            template < typename U > static char test( decltype( declval< U >().begin() ) );
             template < typename U > static long test( ... );
         public:
             static constexpr bool Value = sizeof( test< Container >( 0 ) ) == sizeof( char );
         };
 
-        //template < typename Container >
-        //struct GetBeginImpl
-        //{
-        //private:
-        //    template < typename U >
-        //    static auto test( decltype( &U::Begin ), const Container& a_Container )
-        //    {
-        //        return a_Container.Begin();
-        //    }
+        template < typename Container >
+        struct HasEndImpl
+        {
+        private:
+            template < typename U > static char test( decltype( end( std::declval< U >() ) )* );
+            template < typename U > static char test( decltype( &U::End ) );
+            template < typename U > static long test( ... );
+        public:
+            static constexpr bool Value = sizeof( test< Container >( 0 ) ) == sizeof( char );
+        };
 
-        //    template < typename U >
-        //    static auto test( decltype( &U::begin ), const Container& a_Container )
-        //    {
-        //        return a_Container.begin();
-        //    }
-        //public:
-        //    static auto GetBegin( const Container& a_Container )
-        //    {
-        //        return test< Container >( 0, a_Container );
-        //    }
-        //};
+        template < typename Container >
+        struct GetBeginImpl
+        {
+        private:
 
-        //template < typename Container >
-        //struct GetEndImpl
-        //{
-        //private:
-        //    template < typename U >
-        //    static auto test( decltype( &U::End ), const Container& a_Container )
-        //    {
-        //        return a_Container.End();
-        //    }
+            template < typename U >
+            static auto test( decltype( begin( declval< U >() ) )*, Container& a_Container )
+            {
+                return a_Container.begin();
+            }
 
-        //    template < typename U >
-        //    static auto test( decltype( &U::end ), const Container& a_Container )
-        //    {
-        //        return a_Container.end();
-        //    }
-        //public:
-        //    static auto GetEnd( const Container& a_Container )
-        //    {
-        //        return test< Container >( 0, a_Container );
-        //    }
-        //};
+            template < typename U >
+            static auto test( decltype( begin( declval< U >() ) )*, const Container& a_Container )
+            {
+                return a_Container.begin();
+            }
 
-        template < typename Container, bool IsIterable = IsIterableImpl< Container >::Value >
+            template < typename U >
+            static auto test( decltype( &U::Begin ), Container& a_Container )
+            {
+                return a_Container.Begin();
+            }
+
+            template < typename U >
+            static auto test( decltype( &U::Begin ), const Container& a_Container )
+            {
+                return a_Container.Begin();
+            }
+
+        public:
+
+            static auto GetBegin( Container& a_Container )
+            {
+                return test< Container >( 0, a_Container );
+            }
+
+            static auto GetBegin( const Container& a_Container )
+            {
+                return test< Container >( 0, a_Container );
+            }
+        };
+
+        template < typename Container >
+        struct GetEndImpl
+        {
+        private:
+
+            template < typename U >
+            static auto test( decltype( end( declval< U >() ) )*, const Container& a_Container )
+            {
+                return a_Container.end();
+            }
+
+            template < typename U >
+            static auto test( decltype( &U::End ), const Container& a_Container )
+            {
+                return a_Container.End();
+            }
+
+        public:
+            static auto GetEnd( const Container& a_Container )
+            {
+                return test< Container >( 0, a_Container );
+            }
+        };
+
+        template < typename Container, bool IsIterable = HasBeginImpl< Container >::Value && HasEndImpl< Container >::Value >
         struct GetIterImpl
         {
-            using Iterator = decltype( begin( declval< Container& >() ) );
-            using CIterator = decltype( end( declval< Container >() ) );
+            using Iterator = decltype( GetBeginImpl< Container >::GetBegin( declval< Container& >() ) );
+            using CIterator = decltype( GetBeginImpl< Container >::GetBegin( declval< Container >() ) );
         };
 
         template < typename Container >
@@ -157,20 +164,38 @@ namespace ContainerTraits
         return GetSizeImpl< Container >::GetSize( a_Container );
     }
 
-    /*template < typename Container, typename = enable_if_t< HasBegin< Container >::Value, void > >
+    template < typename Container >
+    static constexpr bool HasBegin = HasBeginImpl< Container >::Value;
+
+    template < typename Container >
+    static constexpr bool HasEnd = HasEndImpl< Container >::Value;
+
+    template < typename Container >
+    static constexpr bool IsIterable = HasBegin< Container > && HasEnd< Container >;
+
+    template < typename Container, typename = enable_if_t< HasBeginImpl< Container >::Value, void > >
+    static auto Begin( Container& a_Container )
+    {
+        return GetBeginImpl< Container >::GetBegin( a_Container );
+    }
+
+    template < typename Container, typename = enable_if_t< HasBeginImpl< Container >::Value, void > >
     static auto Begin( const Container& a_Container )
     {
         return GetBeginImpl< Container >::GetBegin( a_Container );
     }
 
-    template < typename Container, typename = enable_if_t< HasEnd< Container >::Value, void > >
+    template < typename Container, typename = enable_if_t< HasEndImpl< Container >::Value, void > >
+    static auto End( Container& a_Container )
+    {
+        return GetEndImpl< Container >::GetEnd( a_Container );
+    }
+
+    template < typename Container, typename = enable_if_t< HasEndImpl< Container >::Value, void > >
     static auto End( const Container& a_Container )
     {
         return GetEndImpl< Container >::GetEnd( a_Container );
-    }*/
-
-    template < typename Container >
-    static constexpr bool IsIterable = IsIterableImpl< Container >::Value;
+    }
 
     template < typename Container >
     using GetIter = typename GetIterImpl< Container >::Iterator;
@@ -199,17 +224,16 @@ namespace ContainerTraits
     template < typename Container >
     using DisableIfIterable = enable_if_t< !IsIterable< Container >, void >;
 
+    template < typename Container, typename Type >
+    using EnableIfContainer = enable_if_t< IsSizeable< Container > && IsIterable< Container > && is_same_v< GetIterType< GetIter< Container > > >, Type >;
+
+    template < typename Container, typename Type >
+    using DisableIfContainer = enable_if_t< !IsSizeable< Container > || !IsIterable< Container > || !is_same_v< GetIterType< GetIter< Container > > >, Type >;
+
 };
 
-struct cont
-{
-    void Begin()
-    {
-
-    }
-};
-
-static constexpr bool val0 = ContainerTraits::HasBeginImpl< array< int, 10 > >::Value;
-static constexpr bool val1 = ContainerTraits::HasBeginImpl< cont >::Value;
-static constexpr bool val2 = ContainerTraits::HasBeginImpl< int >::Value;
-using t = ContainerTraits::GetIterType< array< int, 10 >::iterator >;
+#include "Enumerable.hpp"
+static constexpr bool val0 = ContainerTraits::HasBeginImpl< Enumerable< int > >::Value;
+using t = ContainerTraits::GetIterImpl< Enumerable< int > >::; //ContainerTraits::EnableIfContainer< Enumerable< int >, int >;
+using i = ContainerTraits::GetIterType< t >;
+static constexpr bool val = ContainerTraits::HasBeginImpl< Enumerable< int > >::Value;

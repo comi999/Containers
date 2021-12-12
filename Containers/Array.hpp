@@ -609,7 +609,7 @@ public:
 
 	inline Enumerable< ValueType > AsEnumerable()
 	{
-		return Enumerable< ValueType >( Base::begin(), Base::end() );
+		return Enumerable< ValueType >( Base::begin(), Base::end(), Base::size() );
 	}
 
 	inline auto& AsReadOnly()
