@@ -5,6 +5,7 @@
 
 #include "Invoker.hpp"
 #include "Reference.hpp"
+#include "Enumerable.hpp"
 
 using namespace std;
 
@@ -604,6 +605,11 @@ public:
 	Array( const InitializerList< ValueType >&& a_InitializerList )
 	{
 		memcpy( Base::data(), a_InitializerList.begin(), ( a_InitializerList.size() < Base::size() ? a_InitializerList.size() : Base::size() ) * sizeof( ValueType ) );
+	}
+
+	inline Enumerable< ValueType > AsEnumerable()
+	{
+		return Enumerable< ValueType >( Base::begin(), Base::end() );
 	}
 
 	inline auto& AsReadOnly()

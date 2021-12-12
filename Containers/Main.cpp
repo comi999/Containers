@@ -97,9 +97,6 @@ struct Cont
     T num[10];
 };
 
-static constexpr bool val0 = ContainerTraits::IsIterable< vector< int > >;
-static constexpr bool val1 = is_same_v< ContainerTraits::GetIterType< ContainerTraits::GetIter< vector< int > > >, int >;
-
 void RunTests()
 {
     using RIter = Enumerable< int >::RIterator;
@@ -468,15 +465,15 @@ void RunTests()
 
 int main()
 {
-    RunTests();
+    //RunTests();
+    Cont< int > c;
+    Array< int, 10 > arr = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    auto en = arr.AsEnumerable();
+    //Enumerable< int > en( vector< int >() );
 
-    vector< int > v = { 0, 1, 2, 3, 4, 5, 6 };
-    list< int > l   = { 0, 1, 2, 3, 4, 5, 6 };
-    Enumerable< int > enume( v );
-
-    for ( auto iter = enume.RBegin(); iter != enume.REnd(); ++iter )
+    for ( auto iter = en.RBegin(); iter < en.REnd(); ++iter )
     {
         cout << *iter << endl;
     }
-
 }
+
