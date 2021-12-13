@@ -572,21 +572,19 @@ int main()
     set< int > s = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
     vector< Struct > structs = { { 0, 0 }, { 1, 1 } };
 
-    Enumerable< int > en0( v0 );
+    Enumerable< int > en0( c );
     Enumerable< int > en1( v1 );
-    Enumerable< Struct > en2( structs );
-    auto beg = en2.Begin();
 
-    en2.EmplaceAt( en2.Begin() + 0, 100, 99 );
+    //int value = *en0.FindIteratorLast( []( const int& val ){ return val < 7; } );
+    en0.ForEach( en0.Begin() + 2, en0.End() - 4, []( int& val ){ val *= 10; } );
 
-    en0.CopyTo( en1 );
+    int val1 = en0.Back();
+    int val2 = en0.Front();
 
-    int val = en0.Find( en0.Begin() + 3, en0.End(), []( const int& value ) { return value > 5; } );
+    auto comb = en0.Combine( en1 );
+    auto readonly = en0.AsReadOnly< 20 >();
 
-    en1.Assign( en1.Begin() + 3, en1.End(), 100 );
+    auto diff = en1.Intersection( en0 );
 
-    for ( auto iter = en1.Begin(); iter < en1.End(); ++iter )
-    {
-        cout << *iter << endl;
-    }
+    en1.MemCopy( v0.data(), 1, 10 );
 }

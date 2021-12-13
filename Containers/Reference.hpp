@@ -10,20 +10,17 @@ public:
 
 	Reference()
 		: m_Value( nullptr )
-	{
-	}
+	{ }
 
 	Reference( ValueType& a_Value )
 		: m_Value( &a_Value )
-	{
-	}
+	{ }
 
 	Reference( ValueType&& ) = delete;
 
 	Reference( Reference< ValueType >& a_Reference )
 		: m_Value( a_Reference.GetPtr() )
-	{
-	}
+	{ }
 
 	ValueType& Get()
 	{
@@ -83,25 +80,21 @@ public:
 
 	CReference()
 		: m_Value( nullptr )
-	{
-	}
+	{ }
 
 	CReference( const ValueType& a_Value )
 		: m_Value( &a_Value )
-	{
-	}
+	{ }
 
 	CReference( ValueType&& ) = delete;
 
 	CReference( const Reference< ValueType >& a_Reference )
 		: m_Value( a_Reference.GetPtr() )
-	{
-	}
+	{ }
 
 	CReference( const CReference< ValueType >& a_Reference )
 		: m_Value( a_Reference.GetPtr() )
-	{
-	}
+	{ }
 
 	const ValueType& Get()
 	{

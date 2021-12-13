@@ -1206,15 +1206,14 @@ public:
 		return Base::max_size();
 	}
 
-	template < typename T >
-	inline void MemCopy( size_t a_Position, const T* a_Source, size_t a_Length )
+	inline void MemCopy( const void* a_Source, size_t a_Offset, size_t a_Length )
 	{
-		memcpy( Base::data() + a_Position, a_Source, sizeof( T ) * a_Length );
+		memcpy( reinterpret_cast< void* >( Base::data() ) + a_Offset, a_Source, a_Length );
 	}
 
-	inline void MemSet( size_t a_Position, char a_Source, size_t a_Size )
+	inline void MemSet( char a_Value, size_t a_Offset, size_t a_Size )
 	{
-		memset( Base::data() + a_Position, static_cast< int >( a_Source ), a_Size );
+		memset( reinterpret_cast< void* >( Base::data() ) + a_Offset, static_cast< int >( a_Value ), a_Size );
 	}
 
 	inline void Reverse()
@@ -2205,15 +2204,14 @@ public:
 		return Base::max_size();
 	}
 
-	template < typename T >
-	inline void MemCopy( size_t a_Position, const T* a_Source, size_t a_Length )
+	inline void MemCopy( const void* a_Source, size_t a_Offset, size_t a_Length )
 	{
-		memcpy( Base::data() + a_Position, a_Source, sizeof( T ) * a_Length );
+		memcpy( reinterpret_cast< void* >( Base::data() ) + a_Offset, a_Source, a_Length );
 	}
 
-	inline void MemSet( size_t a_Position, char a_Source, size_t a_Size )
+	inline void MemSet( char a_Value, size_t a_Offset, size_t a_Size )
 	{
-		memset( Base::data() + a_Position, static_cast< int >( a_Source ), a_Size );
+		memset( reinterpret_cast< void* >( Base::data() ) + a_Offset, static_cast< int >( a_Value ), a_Size );
 	}
 
 	inline void PopBack()

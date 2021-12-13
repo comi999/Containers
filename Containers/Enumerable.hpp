@@ -1,19 +1,41 @@
 #pragma once
 #include <type_traits>
 #include <iterator>
+#include <vector>
+#include <array>
+#include <set>
+#include <bitset>
 
 #include "ContainerTraits.hpp"
 #include "Reference.hpp"
+#include "Invoker.hpp"
 
 using namespace std;
+
+template < typename T, size_t SIZE >
+class ReadOnlyArray;
+
+template < typename T, size_t SIZE >
+class Array;
 
 template < typename ValueType >
 class Enumerable
 {
 private:
 
+	template < typename T >
+	struct LessPtr
+	{
+		bool operator()( const T* Left, const T* Right ) const
+		{
+			return *Left < *Right;
+		}
+	};
+
 	enum class OperatorType : char
 	{
+		FBase,
+		RBase,
 		FClone,
 		RClone,
 		FConvert,
@@ -65,22 +87,22 @@ public:
 
 	public:
 
-		Iterator( Iterator& a_Iterator )
+		Iterator( const Iterator& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_Iterator.m_Iterator, 0, 0, OperatorType::FClone ) )
 		{ }
 
-		Iterator( Iterator&& a_Iterator )
+		Iterator( const Iterator&& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
 			, m_Iterator( a_Iterator.m_Iterator )
 		{ }
 
-		Iterator( RIterator& a_RIterator )
+		Iterator( const RIterator& a_RIterator )
 			: m_Enumerable( a_RIterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_RIterator.m_Iterator, 0, m_Enumerable, OperatorType::FConvert ) )
 		{ }
 
-		Iterator( RIterator&& a_RIterator )
+		Iterator( const RIterator&& a_RIterator )
 			: m_Enumerable( a_RIterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_RIterator.m_Iterator, 0, m_Enumerable, OperatorType::FConvert ) )
 		{ }
@@ -88,6 +110,16 @@ public:
 		~Iterator()
 		{
 			m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDelete );
+		}
+
+		inline RIterator RBase()
+		{
+			return RIterator( m_Enumerable, m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RBase ) );
+		}
+
+		inline RIterator RBase() const
+		{
+			return RIterator( m_Enumerable, m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RBase ) );
 		}
 
 		inline Iterator& operator++()
@@ -278,22 +310,22 @@ public:
 
 	public:
 
-		RIterator( Iterator& a_Iterator )
+		RIterator( const Iterator& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_Iterator.m_Iterator, 0, m_Enumerable, OperatorType::RConvert ) )
 		{ }
 
-		RIterator( Iterator&& a_Iterator )
+		RIterator( const Iterator&& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_Iterator.m_Iterator, 0, m_Enumerable, OperatorType::RConvert ) )
 		{ }
 
-		RIterator( RIterator& a_RIterator )
+		RIterator( const RIterator& a_RIterator )
 			: m_Enumerable( a_RIterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_RIterator.m_Iterator, 0, 0, OperatorType::RClone ) )
 		{ }
 
-		RIterator( RIterator&& a_RIterator )
+		RIterator( const RIterator&& a_RIterator )
 			: m_Enumerable( a_RIterator.m_Enumerable )
 			, m_Iterator( a_RIterator.m_Iterator )
 		{ }
@@ -301,6 +333,16 @@ public:
 		~RIterator()
 		{
 			m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDelete );
+		}
+
+		inline Iterator Base()
+		{
+			return Iterator( m_Enumerable, m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FBase ) );
+		}
+
+		inline Iterator Base() const
+		{
+			return Iterator( m_Enumerable, m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FBase ) );
 		}
 
 		inline RIterator& operator++()
@@ -490,42 +532,42 @@ public:
 
 	public:
 
-		CIterator( Iterator& a_Iterator )
+		CIterator( const Iterator& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_Iterator.m_Iterator, 0, 0, OperatorType::FClone ) )
 		{ }
 
-		CIterator( Iterator&& a_Iterator )
+		CIterator( const Iterator&& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
 			, m_Iterator( a_Iterator.m_Iterator )
 		{ }
 
-		CIterator( CIterator& a_CIterator )
+		CIterator( const CIterator& a_CIterator )
 			: m_Enumerable( a_CIterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_CIterator.m_Iterator, 0, 0, OperatorType::FClone ) )
 		{ }
 
-		CIterator( CIterator&& a_CIterator )
+		CIterator( const CIterator&& a_CIterator )
 			: m_Enumerable( a_CIterator.m_Enumerable )
 			, m_Iterator( a_CIterator.m_Iterator )
 		{ }
 
-		CIterator( RIterator& a_RIterator )
+		CIterator( const RIterator& a_RIterator )
 			: m_Enumerable( a_RIterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_RIterator.m_Iterator, 0, m_Enumerable, OperatorType::FConvert ) )
 		{ }
 
-		CIterator( RIterator&& a_RIterator )
+		CIterator( const RIterator&& a_RIterator )
 			: m_Enumerable( a_RIterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_RIterator.m_Iterator, 0, m_Enumerable, OperatorType::FConvert ) )
 		{ }
 
-		CIterator( CRIterator& a_CRIterator )
+		CIterator( const CRIterator& a_CRIterator )
 			: m_Enumerable( a_CRIterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_CRIterator.m_Iterator, 0, m_Enumerable, OperatorType::FConvert ) )
 		{ }
 
-		CIterator( CRIterator&& a_CRIterator )
+		CIterator( const CRIterator&& a_CRIterator )
 			: m_Enumerable( a_CRIterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_CRIterator.m_Iterator, 0, m_Enumerable, OperatorType::FConvert ) )
 		{ }
@@ -533,6 +575,16 @@ public:
 		~CIterator()
 		{
 			m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FDelete );
+		}
+
+		inline CRIterator RBase()
+		{
+			return CRIterator( m_Enumerable, m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RBase ) );
+		}
+
+		inline CRIterator RBase() const
+		{
+			return CRIterator( m_Enumerable, m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RBase ) );
 		}
 
 		inline CIterator& operator++()
@@ -728,42 +780,42 @@ public:
 
 	public:
 
-		CRIterator( Iterator& a_Iterator )
+		CRIterator( const Iterator& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_Iterator.m_Iterator, 0, m_Enumerable, OperatorType::RConvert ) )
 		{ }
 
-		CRIterator( Iterator&& a_Iterator )
+		CRIterator( const Iterator&& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_Iterator.m_Iterator, 0, m_Enumerable, OperatorType::RConvert ) )
 		{ }
 
-		CRIterator( CIterator& a_CIterator )
+		CRIterator( const CIterator& a_CIterator )
 			: m_Enumerable( a_CIterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_CIterator.m_Iterator, 0, m_Enumerable, OperatorType::RConvert ) )
 		{ }
 
-		CRIterator( CIterator&& a_CIterator )
+		CRIterator( const CIterator&& a_CIterator )
 			: m_Enumerable( a_CIterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_CIterator.m_Iterator, 0, m_Enumerable, OperatorType::RConvert ) )
 		{ }
 
-		CRIterator( RIterator& a_RIterator )
+		CRIterator( const RIterator& a_RIterator )
 			: m_Enumerable( a_RIterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_RIterator.m_Iterator, 0, 0, OperatorType::RClone ) )
 		{ }
 
-		CRIterator( RIterator&& a_RIterator )
+		CRIterator( const RIterator&& a_RIterator )
 			: m_Enumerable( a_RIterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_RIterator.m_Iterator, 0, 0, OperatorType::RClone ) )
 		{ }
 
-		CRIterator( CRIterator& a_CRIterator )
+		CRIterator( const CRIterator& a_CRIterator )
 			: m_Enumerable( a_CRIterator.m_Enumerable )
 			, m_Iterator( m_Enumerable->m_Operator( a_CRIterator.m_Iterator, 0, 0, OperatorType::RClone ) )
 		{ }
 
-		CRIterator( CRIterator&& a_CRIterator )
+		CRIterator( const CRIterator&& a_CRIterator )
 			: m_Enumerable( a_CRIterator.m_Enumerable )
 			, m_Iterator( a_CRIterator.m_Iterator )
 		{ }
@@ -771,6 +823,16 @@ public:
 		~CRIterator()
 		{
 			m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::RDelete );
+		}
+		
+		inline CIterator Base()
+		{
+			return CIterator( m_Enumerable, m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FBase ) );
+		}
+
+		inline CIterator Base() const
+		{
+			return CIterator( m_Enumerable, m_Enumerable->m_Operator( m_Iterator, 0, 0, OperatorType::FBase ) );
 		}
 
 		inline CRIterator& operator++()
@@ -990,6 +1052,22 @@ public:
 		m_Operator( m_End,   0, 0, OperatorType::FDelete );
 	}
 
+	template < size_t LENGTH >
+	inline auto AsReadOnly() const
+	{
+		array< ValueType, LENGTH > Result;
+		size_t Length = LENGTH < m_Size ? LENGTH : m_Size;
+		size_t Index = 0;
+		CIterator Beg( Begin() );
+		
+		for ( ; Index < Length; ++Index, ++Beg )
+		{
+			Result[ Index ] = *Beg;
+		}
+
+		return reinterpret_cast< ReadOnlyArray< ValueType, LENGTH >& >( Result );
+	}
+
 	inline void Assign( const ValueType& a_Value )
 	{
 		Iterator Beg( Begin() );
@@ -1039,6 +1117,26 @@ public:
 		return *( End() - 1 );
 	}
 
+	inline auto Combine( const Enumerable< ValueType >& a_Enumerable ) const
+	{
+		vector< ValueType > Result;
+		size_t LengthA = m_Size;
+		size_t LengthB = a_Enumerable.m_Size;
+		Result.reserve( LengthA + LengthB );
+
+		for ( CIterator Beg( Begin() ); LengthA > 0; --LengthA, ++Beg )
+		{
+			Result.push_back( *Beg );
+		}
+
+		for ( CIterator Beg( a_Enumerable.Begin() ); LengthB > 0; --LengthB, ++Beg )
+		{
+			Result.push_back( *Beg );
+		}
+
+		return reinterpret_cast< Array< ValueType >& >( Result );
+	}
+
 	inline void CopyTo( Enumerable< ValueType >& a_Enumerable ) const
 	{
 		size_t Length = m_Size < a_Enumerable.m_Size ? m_Size : a_Enumerable.m_Size;
@@ -1049,6 +1147,35 @@ public:
 		{
 			*BegB = *BegA;
 		}
+	}
+
+	inline auto Difference( const Enumerable< ValueType >& a_Enumerable ) const
+	{
+		set< const ValueType*, LessPtr< ValueType > > SetA;
+		set< const ValueType*, LessPtr< ValueType > > SetB;
+		vector< ValueType > Result;
+		size_t LengthA = m_Size;
+		size_t LengthB = a_Enumerable.m_Size;
+
+		for ( CIterator Beg( Begin() ); LengthA > 0; --LengthA, ++Beg )
+		{
+			SetA.insert( &*Beg );
+		}
+
+		for ( CIterator Beg( a_Enumerable.Begin() ); LengthB > 0; --LengthB, ++Beg )
+		{
+			SetB.insert( &*Beg );
+		}
+
+		for ( auto Iterator = SetA.begin(); Iterator != SetA.end(); ++Iterator )
+		{
+			if ( SetB.insert( *Iterator ).second )
+			{
+				Result.push_back( **Iterator );
+			}
+		}
+
+		return reinterpret_cast< Array< ValueType >& >( Result );
 	}
 
 	template < typename... T >
@@ -1230,6 +1357,389 @@ public:
 		return End();
 	}
 
+	auto FindAll( const Predicate< const ValueType& >& a_Predicate )
+	{
+		vector< Reference< ValueType > > Result;
+		size_t Length = m_Size;
+		Iterator Beg( Begin() );
+
+		for ( ; Length > 0; --Length, ++Beg )
+		{
+			ValueType& Value = *Beg;
+
+			if ( a_Predicate.Invoke( Value ) )
+			{
+				Result.emplace_back( Value );
+			}
+		}
+
+		return reinterpret_cast< Array< Reference< ValueType > >& >( Result );
+	}
+
+	auto FindAll( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		vector< CReference< ValueType > > Result;
+		size_t Length = m_Size;
+		CIterator Beg( Begin() );
+
+		for ( ; Length > 0; --Length, ++Beg )
+		{
+			const ValueType& Value = *Beg;
+
+			if ( a_Predicate.Invoke( Value ) )
+			{
+				Result.emplace_back( Value );
+			}
+		}
+
+		return reinterpret_cast< Array< CReference< ValueType > >& >( Result );
+	}
+
+	auto FindAll( Iterator a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate )
+	{
+		vector< Reference< ValueType > > Result;
+		
+		for ( ; a_Begin != a_End; ++a_Begin )
+		{
+			ValueType& Value = *a_Begin;
+
+			if ( a_Predicate.Invoke( Value ) )
+			{
+				Result.emplace_back( Value );
+			}
+		}
+
+		return reinterpret_cast< Array< Reference< ValueType > >& >( Result );
+	}
+
+	auto FindAll( CIterator a_Begin, const CIterator& a_End, const Predicate< const ValueType& >& a_Predicate )
+	{
+		vector< CReference< ValueType > > Result;
+
+		for ( ; a_Begin != a_End; ++a_Begin )
+		{
+			const ValueType& Value = *a_Begin;
+
+			if ( a_Predicate.Invoke( Value ) )
+			{
+				Result.emplace_back( Value );
+			}
+		}
+
+		return reinterpret_cast< Array< CReference< ValueType > >& >( Result );
+	}
+
+	auto FindIteratorAll( const Predicate< const ValueType& >& a_Predicate )
+	{
+		vector< Iterator > Result;
+		size_t Length = m_Size;
+		Iterator Beg( Begin() );
+
+		for ( ; Length > 0; --Length, ++Beg )
+		{
+			if ( a_Predicate.Invoke( *Beg ) )
+			{
+				Result.emplace_back( Beg );
+			}
+		}
+
+		return reinterpret_cast< Array< Iterator >& >( Result );
+	}
+
+	auto FindIteratorAll( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		vector< CIterator > Result;
+		size_t Length = m_Size;
+		CIterator Beg( Begin() );
+
+		for ( ; Length > 0; --Length, ++Beg )
+		{
+			if ( a_Predicate.Invoke( *Beg ) )
+			{
+				Result.emplace_back( Beg );
+			}
+		}
+
+		return reinterpret_cast< Array< CIterator >& >( Result );
+	}
+
+	auto FindIteratorAll( Iterator a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate )
+	{
+		vector< Iterator > Result;
+
+		for ( ; a_Begin != a_End; ++a_Begin )
+		{
+			if ( a_Predicate.Invoke( *a_Begin ) )
+			{
+				Result.emplace_back( a_Begin );
+			}
+		}
+
+		return reinterpret_cast< Array< Iterator >& >( Result );
+	}
+
+	auto FindIteratorAll( CIterator a_Begin, const CIterator& a_End, const Predicate< const ValueType& >& a_Predicate )
+	{
+		vector< CIterator > Result;
+
+		for ( ; a_Begin != a_End; ++a_Begin )
+		{
+			if ( a_Predicate.Invoke( *a_Begin ) )
+			{
+				Result.emplace_back( a_Begin );
+			}
+		}
+
+		return reinterpret_cast< Array< CIterator >& >( Result );
+	}
+	
+	auto FindLast( const Predicate< const ValueType& >& a_Predicate )
+	{
+		RIterator Beg( RBegin() );
+		RIterator End( REnd() );
+
+		for ( ; Beg != End; ++Beg )
+		{
+			ValueType& Value = *Beg;
+
+			if ( a_Predicate.Invoke( Value ) )
+			{
+				return Reference< ValueType >( Value );
+			}
+		}
+
+		return Reference< ValueType >();
+	}
+
+	auto FindLast( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		CRIterator Beg( RBegin() );
+		CRIterator End( REnd() );
+
+		for ( ; Beg != End; ++Beg )
+		{
+			const ValueType& Value = *Beg;
+
+			if ( a_Predicate.Invoke( Value ) )
+			{
+				return CReference< ValueType >( Value );
+			}
+		}
+
+		return CReference< ValueType >();
+	}
+
+	auto FindLast( const Iterator& a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate )
+	{
+		RIterator Beg( a_End );
+		RIterator End( a_Begin );
+
+		for ( ; Beg != End; ++Beg )
+		{
+			ValueType& Value = *Beg;
+
+			if ( a_Predicate.Invoke( Value ) )
+			{
+				return Reference< ValueType >( Value );
+			}
+		}
+
+		return Reference< ValueType >();
+	}
+
+	auto FindLast( const Iterator& a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		CRIterator Beg( a_End );
+		CRIterator End( a_Begin );
+
+		for ( ; Beg != End; ++Beg )
+		{
+			const ValueType& Value = *Beg;
+
+			if ( a_Predicate.Invoke( Value ) )
+			{
+				return CReference< ValueType >( Value );
+			}
+		}
+
+		return CReference< ValueType >();
+	}
+
+	auto FindIteratorLast( const Predicate< const ValueType& >& a_Predicate )
+	{
+		RIterator Beg( RBegin() );
+		RIterator End( REnd() );
+
+		for ( ; Beg != End; ++Beg )
+		{
+			if ( a_Predicate.Invoke( *Beg ) )
+			{
+				return Beg.Base();
+			}
+		}
+
+		return Enumerable< ValueType >::End();
+	}
+
+	auto FindIteratorLast( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		CRIterator Beg( RBegin() );
+		CRIterator End( REnd() );
+
+		for ( ; Beg != End; ++Beg )
+		{
+			if ( a_Predicate.Invoke( *Beg ) )
+			{
+				return Beg.Base();
+			}
+		}
+
+		return Enumerable< ValueType >::End();
+	}
+
+	auto FindIteratorLast( const Iterator& a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate )
+	{
+		RIterator Beg( a_End );
+		RIterator End( a_Begin );
+
+		for ( ; Beg != End; ++Beg )
+		{
+			if ( a_Predicate.Invoke( *Beg ) )
+			{
+				return Beg.Base();
+			}
+		}
+
+		return Enumerable< ValueType >::End();
+	}
+
+	auto FindIteratorLast( const Iterator& a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		CRIterator Beg( a_End );
+		CRIterator End( a_Begin );
+
+		for ( ; Beg != End; ++Beg )
+		{
+			if ( a_Predicate.Invoke( *Beg ) )
+			{
+				return Beg.Base();
+			}
+		}
+
+		return Enumerable< ValueType >::End();
+	}
+
+	inline void ForEach( const Action< ValueType& >& a_Action )
+	{
+		size_t Length = m_Size;
+		Iterator Beg( Begin() );
+
+		for ( ; Length > 0; --Length, ++Beg )
+		{
+			a_Action.Invoke( *Beg );
+		}
+	}
+
+	inline void ForEach( const Action< const ValueType& >& a_Action ) const
+	{
+		size_t Length = m_Size;
+		CIterator Beg( Begin() );
+
+		for ( ; Length > 0; --Length, ++Beg )
+		{
+			a_Action.Invoke( *Beg );
+		}
+	}
+
+	inline void ForEach( Iterator a_Begin, const Iterator& a_End, const Action< ValueType& >& a_Action )
+	{
+		for ( ; a_Begin != a_End; ++a_Begin )
+		{
+			a_Action.Invoke( *a_Begin );
+		}
+	}
+
+	inline void ForEach( CIterator a_Begin, const CIterator& a_End, const Action< const ValueType& >& a_Action ) const
+	{
+		for ( ; a_Begin != a_End; ++a_Begin )
+		{
+			a_Action.Invoke( *a_Begin );
+		}
+	}
+
+	inline auto& Front()
+	{
+		return *Begin();
+	}
+
+	inline const auto& Front() const
+	{
+		return *Begin();
+	}
+
+	inline auto Intersection( const Enumerable< ValueType >& a_Enumerable ) const
+	{
+		set< const ValueType*, LessPtr< ValueType > > SetA;
+		set< const ValueType*, LessPtr< ValueType > > SetB;
+		vector< ValueType > Result;
+		size_t LengthA = m_Size;
+		size_t LengthB = a_Enumerable.m_Size;
+
+		for ( CIterator Beg( Begin() ); LengthA > 0; --LengthA, ++Beg )
+		{
+			SetA.insert( &*Beg );
+		}
+
+		for ( CIterator Beg( a_Enumerable.Begin() ); LengthB > 0; --LengthB, ++Beg )
+		{
+			SetB.insert( &*Beg );
+		}
+
+		bool SetAIsLargest = SetA.size() > SetB.size();
+		decltype( SetA )& Smallest = !SetAIsLargest ? SetA : SetB;
+		decltype( SetA )& Largest = SetAIsLargest ? SetA : SetB;
+		auto Beg = !SetAIsLargest ? SetA.begin() : SetB.begin();
+		auto End = !SetAIsLargest ? SetA.end() : SetB.end();
+
+		for ( ; Beg != End; ++Beg )
+		{
+			if ( !Largest.insert( *Beg ).second )
+			{
+				Result.push_back( **Beg );
+			}
+		}
+
+		return Result;
+	}
+
+	inline auto MaxSize() const
+	{
+		return m_Size;
+	}
+
+	void MemCopy( const void* a_Source, size_t a_Offset, size_t a_Length )
+	{
+		size_t Index  = a_Offset / sizeof( ValueType );
+		size_t Offset = a_Offset - Index * sizeof( ValueType );
+		const unsigned char* Source = ( const unsigned char* )a_Source;
+
+		for ( Iterator Beg( Begin() + Index ); a_Length > 0; ++Beg )
+		{
+			auto& val = *Beg;
+			void* Dest = ( unsigned char* )&*Beg + Offset;
+			memcpy( Dest, a_Source, a_Length > sizeof( ValueType ) - Offset ? sizeof( ValueType ) - Offset : a_Length );
+			Source += sizeof( ValueType ) - Offset;
+			size_t Adjustment = a_Length > sizeof( ValueType ) - Offset ? sizeof( ValueType ) - Offset : a_Length;
+			a_Length -= Adjustment;
+			Offset = 0;
+		}
+	}
+
+	inline void MemSet( char a_Value, size_t a_Offset, size_t a_Length )
+	{
+
+	}
+
 	inline size_t Size() const
 	{
 		return m_Size;
@@ -1324,6 +1834,14 @@ private:
 	{
 		switch ( a_OperatorType )
 		{
+		case OperatorType::FBase:
+		{
+			return new Iter( reinterpret_cast< reverse_iterator< Iter >* >( a_ValueA )->base() );
+		}
+		case OperatorType::RBase:
+		{
+			return new reverse_iterator< Iter >( *reinterpret_cast< Iter* >( a_ValueA ) );
+		}
 		case OperatorType::FClone:
 		{
 			return new Iter( *reinterpret_cast< Iter* >( a_ValueA ) );
