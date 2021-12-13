@@ -566,6 +566,7 @@ int main()
     //RunTests();
     Cont< int > c;
     Array< int, 10 > arr = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    Array< int > arr1 = { 1, 2, 3, 4, 56, 7, 8, 9, 9 };
     vector< int > v0 = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
     vector< int > v1 = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
     list< int > l = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
@@ -586,5 +587,6 @@ int main()
 
     auto diff = en1.Intersection( en0 );
 
-    en1.MemCopy( v0.data(), 1, 10 );
+    ReadOnlyArray< int, 3 > arr2( arr1 );
+
 }

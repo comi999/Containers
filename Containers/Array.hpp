@@ -6,6 +6,7 @@
 #include "Invoker.hpp"
 #include "Reference.hpp"
 #include "Enumerable.hpp"
+#include "ContainerTraits.hpp"
 
 using namespace std;
 
@@ -33,7 +34,7 @@ public:
 	template < size_t LENGTH >
 	ReadOnlyArray( const Array< ValueType, LENGTH >& a_Array )
 	{
-		memcpy( Base::data(), a_Array.data(), ( a_Array.size() < Base::size() ? a_Array.size() : Base::size() ) * sizeof( ValueType ) );
+		memcpy( Base::data(), a_Array.Data(), ( a_Array.Size() < Base::size() ? a_Array.Size() : Base::size() ) * sizeof( ValueType ) );
 	}
 
 	ReadOnlyArray( const InitializerList< ValueType >& a_InitializerList )
@@ -44,6 +45,32 @@ public:
 	ReadOnlyArray( const InitializerList< ValueType >&& a_InitializerList )
 	{
 		memcpy( Base::data(), a_InitializerList.begin(), ( a_InitializerList.size() < Base::size() ? a_InitializerList.size() : Base::size() ) * sizeof( ValueType ) );
+	}
+
+	template < typename Iter, typename = ContainerTraits::EnableIfIterType< Iter, ValueType > >
+	ReadOnlyArray( Iter a_Begin, Iter a_End )
+	{
+		typename Base::iterator Beg( Base::begin() );
+		typename Base::iterator End( Base::end() );
+
+		for ( ; a_Begin != a_End && Beg != End; ++a_Begin, ++Beg )
+		{
+			*Beg = *a_Begin;
+		}
+	}
+
+	template < typename Container, typename = ContainerTraits::EnableIfContainer< Container, ValueType > >
+	ReadOnlyArray( const Container& a_Container )
+	{
+		auto BegC = ContainerTraits::Begin( a_Container );
+		auto EndC = ContainerTraits::End( a_Container );
+		typename Base::iterator Beg( Base::begin() );
+		typename Base::iterator End( Base::end() );
+
+		for ( ; BegC != EndC && Beg != End; ++BegC, ++Beg )
+		{
+			*Beg = *BegC;
+		}
 	}
 
 	inline constexpr auto& At( size_t a_Position ) const
@@ -605,6 +632,32 @@ public:
 	Array( const InitializerList< ValueType >&& a_InitializerList )
 	{
 		memcpy( Base::data(), a_InitializerList.begin(), ( a_InitializerList.size() < Base::size() ? a_InitializerList.size() : Base::size() ) * sizeof( ValueType ) );
+	}
+
+	template < typename Iter, typename = ContainerTraits::EnableIfIterType< Iter, ValueType > >
+	Array( Iter a_Begin, Iter a_End )
+	{
+		Iterator Beg( Base::begin() );
+		Iterator End( Base::end() );
+
+		for ( ; a_Begin != a_End && Beg != End; ++a_Begin, ++Beg )
+		{
+			*Beg = *a_Begin;
+		}
+	}
+
+	template < typename Container, typename = ContainerTraits::EnableIfContainer< Container, ValueType > >
+	Array( const Container& a_Container )
+	{
+		auto BegC = ContainerTraits::Begin( a_Container );
+		auto EndC = ContainerTraits::End( a_Container );
+		Iterator Beg( Base::begin() );
+		Iterator End( Base::end() );
+
+		for ( ; BegC != EndC && Beg != End; ++BegC, ++Beg )
+		{
+			*Beg = *BegC;
+		}
 	}
 
 	inline Enumerable< ValueType > AsEnumerable()
@@ -1234,33 +1287,33 @@ public:
 	template < bool ASCENDING = true >
 	inline void Sort()
 	{
-		sort( Base::begin(), Base::end(), []( const void* Left, const void* Right )
-			   {
-				   if constexpr ( ASCENDING )
-				   {
-					   return ( *reinterpret_cast< const ValueType* >( Left ) > *reinterpret_cast< const ValueType* >( Right ) );
-				   }
-				   else
-				   {
-					   return *reinterpret_cast< const ValueType* >( Left ) < *reinterpret_cast< const ValueType* >( Right );
-				   }
-			   } );
+		sort( Base::begin(), Base::end(), []( const ValueType& Left, const ValueType& Right )
+			  {
+				  if constexpr ( ASCENDING )
+				  {
+					  return Left < Right;
+				  }
+				  else
+				  {
+					  return Left > Right;
+				  }
+			  } );
 	}
 
 	template < bool ASCENDING = true >
 	inline void Sort( Iterator a_Begin, Iterator a_End )
 	{
-		sort( a_Begin, a_End, []( const void* Left, const void* Right )
-			   {
-				   if constexpr ( ASCENDING )
-				   {
-					   return *reinterpret_cast< const ValueType* >( Left ) > *reinterpret_cast< const ValueType* >( Right );
-				   }
-				   else
-				   {
-					   return *reinterpret_cast< const ValueType* >( Left ) < *reinterpret_cast< const ValueType* >( Right );
-				   }
-			   } );
+		sort( a_Begin, a_End, []( const ValueType& Left, const ValueType& Right )
+			  {
+				  if constexpr ( ASCENDING )
+				  {
+					  return Left < Right;
+				  }
+				  else
+				  {
+					  return Left > Right;
+				  }
+			  } );
 	}
 
 	inline void Sort( const Predicate< const ValueType&, const ValueType& >& a_Comparer )
@@ -1283,6 +1336,16 @@ public:
 	inline auto& SubArray() const
 	{
 		return *reinterpret_cast< const Array< ValueType, LENGTH >* >( Base::data() + OFFSET );
+	}
+
+	inline auto SubArray( size_t a_Offset, size_t a_Length )
+	{
+
+	}
+
+	inline auto SubArray( size_t a_Offset, size_t a_Length ) const
+	{
+
 	}
 
 	inline void Swap( Array< ValueType, SIZE >& a_Array )
@@ -1569,6 +1632,31 @@ public:
 	{
 		Base::resize( a_InitializerList.size() );
 		memcpy( Base::data(), a_InitializerList.begin(), a_InitializerList.size() * sizeof( ValueType ) );
+	}
+
+	template < typename Iter, typename = ContainerTraits::EnableIfIterType< Iter, ValueType > >
+	Array( Iter a_Begin, Iter a_End )
+	{
+		if constexpr ( _Is_random_iter_v< Iter > )
+		{
+			Base::reserve( a_End - a_Begin );
+		}
+
+		Base::insert( Base::begin(), a_Begin, a_End );
+	}
+
+	template < typename Container, typename = ContainerTraits::EnableIfContainer< Container, ValueType > >
+	Array( const Container& a_Container )
+	{
+		auto Beg = ContainerTraits::Begin( a_Container );
+		auto End = ContainerTraits::End( a_Container );
+
+		if constexpr ( ContainerTraits::IsSizeable< Container > )
+		{
+			Base::reserve( ContainerTraits::Size( a_Container ) );
+		}
+
+		Base::insert( Base::begin(), Beg, End );
 	}
 
 	inline void Assign( const ValueType& a_Value )
@@ -2262,15 +2350,15 @@ public:
 	template < bool ASCENDING = true >
 	inline void Sort()
 	{
-		sort( Base::begin(), Base::end(), []( const void* Left, const void* Right )
+		sort( Base::begin(), Base::end(), []( const ValueType& Left, const ValueType& Right )
 			  {
 				  if constexpr ( ASCENDING )
 				  {
-					  return ( *reinterpret_cast< const ValueType* >( Left ) > * reinterpret_cast< const ValueType* >( Right ) );
+					  return Left < Right;
 				  }
 				  else
 				  {
-					  return *reinterpret_cast< const ValueType* >( Left ) < *reinterpret_cast< const ValueType* >( Right );
+					  return Left > Right;
 				  }
 			  } );
 	}
@@ -2278,15 +2366,15 @@ public:
 	template < bool ASCENDING = true >
 	inline void Sort( Iterator a_Begin, Iterator a_End )
 	{
-		sort( a_Begin, a_End, []( const void* Left, const void* Right )
+		sort( a_Begin, a_End, []( const ValueType& Left, const ValueType& Right )
 			  {
 				  if constexpr ( ASCENDING )
 				  {
-					  return *reinterpret_cast< const ValueType* >( Left ) > * reinterpret_cast< const ValueType* >( Right );
+					  return Left < Right;
 				  }
 				  else
 				  {
-					  return *reinterpret_cast< const ValueType* >( Left ) < *reinterpret_cast< const ValueType* >( Right );
+					  return Left > Right;
 				  }
 			  } );
 	}

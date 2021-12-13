@@ -94,7 +94,7 @@ public:
 
 		Iterator( const Iterator&& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
-			, m_Iterator( a_Iterator.m_Iterator )
+			, m_Iterator( m_Enumerable->m_Operator( a_Iterator.m_Iterator, 0, 0, OperatorType::FClone ) )
 		{ }
 
 		Iterator( const RIterator& a_RIterator )
@@ -327,7 +327,7 @@ public:
 
 		RIterator( const RIterator&& a_RIterator )
 			: m_Enumerable( a_RIterator.m_Enumerable )
-			, m_Iterator( a_RIterator.m_Iterator )
+			, m_Iterator( m_Enumerable->m_Operator( a_RIterator.m_Iterator, 0, 0, OperatorType::RClone ) )
 		{ }
 
 		~RIterator()
@@ -539,7 +539,7 @@ public:
 
 		CIterator( const Iterator&& a_Iterator )
 			: m_Enumerable( a_Iterator.m_Enumerable )
-			, m_Iterator( a_Iterator.m_Iterator )
+			, m_Iterator( m_Enumerable->m_Operator( a_Iterator.m_Iterator, 0, 0, OperatorType::FClone ) )
 		{ }
 
 		CIterator( const CIterator& a_CIterator )
@@ -549,7 +549,7 @@ public:
 
 		CIterator( const CIterator&& a_CIterator )
 			: m_Enumerable( a_CIterator.m_Enumerable )
-			, m_Iterator( a_CIterator.m_Iterator )
+			, m_Iterator( m_Enumerable->m_Operator( a_CIterator.m_Iterator, 0, 0, OperatorType::FClone ) )
 		{ }
 
 		CIterator( const RIterator& a_RIterator )
@@ -817,7 +817,7 @@ public:
 
 		CRIterator( const CRIterator&& a_CRIterator )
 			: m_Enumerable( a_CRIterator.m_Enumerable )
-			, m_Iterator( a_CRIterator.m_Iterator )
+			, m_Iterator( m_Enumerable->m_Operator( a_CRIterator.m_Iterator, 0, 0, OperatorType::RClone ) )
 		{ }
 
 		~CRIterator()
@@ -1719,31 +1719,94 @@ public:
 
 	void MemCopy( const void* a_Source, size_t a_Offset, size_t a_Length )
 	{
-		size_t Index  = a_Offset / sizeof( ValueType );
+		size_t Index = a_Offset / sizeof( ValueType );
 		size_t Offset = a_Offset - Index * sizeof( ValueType );
-		const unsigned char* Source = ( const unsigned char* )a_Source;
+		const char* Source = reinterpret_cast< const char* >( a_Source );
 
 		for ( Iterator Beg( Begin() + Index ); a_Length > 0; ++Beg )
 		{
-			auto& val = *Beg;
-			void* Dest = ( unsigned char* )&*Beg + Offset;
-			memcpy( Dest, a_Source, a_Length > sizeof( ValueType ) - Offset ? sizeof( ValueType ) - Offset : a_Length );
+			char* Dest = reinterpret_cast< char* >( &*Beg ) + Offset;
+			size_t Size = a_Length > sizeof( ValueType ) - Offset ? sizeof( ValueType ) - Offset : a_Length;
+			memcpy( Dest, Source, Size );
 			Source += sizeof( ValueType ) - Offset;
-			size_t Adjustment = a_Length > sizeof( ValueType ) - Offset ? sizeof( ValueType ) - Offset : a_Length;
-			a_Length -= Adjustment;
+			a_Length -= sizeof( ValueType ) - Offset;
 			Offset = 0;
 		}
 	}
 
 	inline void MemSet( char a_Value, size_t a_Offset, size_t a_Length )
 	{
+		size_t Index = a_Offset / sizeof( ValueType );
+		size_t Offset = a_Offset - Index * sizeof( ValueType );
 
+		for ( Iterator Beg( Begin() + Index ); a_Length > 0; ++Beg )
+		{
+			char* Dest = reinterpret_cast< char* >( &*Beg ) + Offset;
+			size_t Size = a_Length > sizeof( ValueType ) - Offset ? sizeof( ValueType ) - Offset : a_Length;
+			memset( Dest, static_cast< int >( a_Value ), Size );
+			a_Length -= sizeof( ValueType ) - Offset;
+			Offset = 0;
+		}
+	}
+
+	inline void Reverse()
+	{
+		reverse( Begin(), End() );
+	}
+
+	inline void Reverse( const Iterator& a_Begin, const Iterator& a_End )
+	{
+		reverse( a_Begin, a_End );
 	}
 
 	inline size_t Size() const
 	{
 		return m_Size;
 	}
+
+	template < bool ASCENDING = true >
+	inline void Sort()
+	{
+		sort( Begin(), End(), []( const ValueType& Left, const ValueType& Right )
+			  {
+				  if constexpr ( ASCENDING )
+				  {
+					  return Left < Right;
+				  }
+				  else
+				  {
+					  return Left > Right;
+				  }
+			  } );
+	}
+
+	template < bool ASCENDING = true >
+	inline void Sort( const Iterator& a_Begin, const Iterator& a_End )
+	{
+		sort( a_Begin, a_End, []( const ValueType& Left, const ValueType& Right )
+			  {
+				  if constexpr ( ASCENDING )
+				  {
+					  return Left < Right;
+				  }
+				  else
+				  {
+					  return Left > Right;
+				  }
+			  } );
+	}
+
+	inline void Sort( const Predicate< const ValueType&, const ValueType& >& a_Comparer )
+	{
+		sort( Begin(), End(), a_Comparer );
+	}
+
+	inline void Sort( const Iterator& a_Begin, const Iterator& a_End, const Predicate< const ValueType&, const ValueType& >& a_Comparer )
+	{
+		sort( a_Begin, a_End, a_Comparer );
+	}
+
+
 
 	#pragma region Iterator
 	inline Iterator Begin()
