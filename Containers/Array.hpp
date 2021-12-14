@@ -8,6 +8,11 @@
 #include "Enumerable.hpp"
 #include "ContainerTraits.hpp"
 
+// ReadOnlyArray
+// - Stores items as const. Individual entries cannot be change, but they can be moved, reordered, sorted, swapped.
+// - Can be swapped or moved to another read only array.
+// - Nothing can be added or removed.
+
 using namespace std;
 
 template < typename T, size_t SIZE >
@@ -16,14 +21,177 @@ class Array;
 template < typename ValueType >
 using InitializerList = initializer_list< ValueType >;
 
+template < typename ValueType >
+class RefArray : private vector< Reference< ValueType > >
+{
+	using Base = vector< Reference< ValueType > >;
+
+public:
+
+	class Iterator : public Base::iterator
+	{
+	public:
+
+		using iterator_category = random_access_iterator_tag;
+		using difference_type   = ptrdiff_t;
+		using value_type        = ValueType;
+		using pointer           = value_type*;
+		using reference         = value_type&;
+
+	private:
+
+		Iterator( Reference< ValueType >* a_Value )
+			: m_Value( a_Value )
+		{ }
+
+	public:
+
+		Iterator( const Iterator& a_Iterator )
+			: m_Value( a_Iterator.m_Value )
+		{ }
+
+		Iterator( const Iterator&& a_Iterator )
+			: m_Value( a_Iterator.m_Value )
+		{ }
+
+		inline Iterator& operator++()
+		{
+			++m_Value;
+			return *this;
+		}
+
+		inline Iterator operator++( int )
+		{
+			return Iterator( m_Value++ );
+		}
+
+		inline Iterator& operator--( )
+		{
+			--m_Value;
+			return *this;
+		}
+
+		inline Iterator operator--( int )
+		{
+			return Iterator( m_Value-- );
+		}
+
+		inline Iterator& operator+=( int a_Places )
+		{
+			m_Value += a_Places;
+			return *this;
+		}
+
+		inline Iterator& operator-=( int a_Places )
+		{
+			m_Value -= a_Places;
+			return *this;
+		}
+
+		inline Iterator operator+( int a_Places ) const
+		{
+			return Iterator( m_Value + a_Places );
+		}
+
+		inline Iterator operator-( int a_Places ) const
+		{
+			return Iterator( m_Value - a_Places );
+		}
+
+		inline int operator-( const Iterator& a_Iterator ) const
+		{
+			return m_Value - a_Iterator.m_Value;
+		}
+
+		inline Iterator& operator=( const Iterator& a_Iterator ) const
+		{
+			m_Value = a_Iterator.m_Value;
+			return *this;
+		}
+
+		inline ValueType& operator*()
+		{
+			return m_Value->Get();
+		}
+
+		inline const ValueType& operator*() const
+		{
+			return m_Value->Get();
+		}
+
+		inline ValueType* operator->()
+		{
+			return m_Value->Get();
+		}
+
+		inline const ValueType* operator->() const
+		{
+			return m_Value->Get();
+		}
+
+		inline bool operator==( const Iterator& a_Iterator ) const
+		{
+			return m_Value == a_Iterator.m_Value;
+		}
+
+		inline bool operator!=( const Iterator& a_Iterator ) const
+		{
+			return m_Value != a_Iterator.m_Value;
+		}
+
+		inline bool operator>( const Iterator& a_Iterator ) const
+		{
+			return m_Value > a_Iterator.m_Value;
+		}
+
+		inline bool operator>=( const Iterator& a_Iterator ) const
+		{
+			return m_Value >= a_Iterator.m_Value;
+		}
+
+		inline bool operator<( const Iterator& a_Iterator ) const
+		{
+			return m_Value < a_Iterator.m_Value;
+		}
+
+		inline bool operator<=( const Iterator& a_Iterator ) const
+		{
+			return m_Value <= a_Iterator.m_Value;
+		}
+
+	private:
+
+		Reference< ValueType >* m_Value;
+
+	};
+	
+	RefArray( const InitializerList< ValueType >)
+};
+
+template < typename ValueType >
+class CRefArray : private vector< CReference< ValueType > >
+{
+
+};
+
 template < typename ValueType, size_t SIZE >
 class ReadOnlyArray : private array< ValueType, SIZE >
 {
+
+	template < typename T >
+	struct LessPtr
+	{
+		bool operator()( const T* Left, const T* Right ) const
+		{
+			return *Left < *Right;
+		}
+	};
+
 public:
 
 	using Base = array< ValueType, SIZE >;
-	using CIterator = array< ValueType, SIZE >::const_iterator;
-	using CRIterator = array< ValueType, SIZE >::const_reverse_iterator;
+	using CIterator = typename array< ValueType, SIZE >::const_iterator;
+	using CRIterator = typename array< ValueType, SIZE >::const_reverse_iterator;
 
 	template < size_t LENGTH >
 	ReadOnlyArray( const ReadOnlyArray< ValueType, LENGTH >& a_ReadOnlyArray )
@@ -84,17 +252,54 @@ public:
 	}
 
 	template < size_t LENGTH >
-	inline auto Combine( const ReadOnlyArray< ValueType, LENGTH >& a_ReadOnlyArray )
+	inline auto Combine( const ReadOnlyArray< ValueType, LENGTH >& a_ReadOnlyArray ) const
 	{
-		Array< ValueType, Base::size() + a_ReadOnlyArray.size() > Result;
-		Result.MemCopy( 0, Base::data(), Base::size() );
-		Result.MemCopy( Base::size(), a_ReadOnlyArray.data(), a_ReadOnlyArray.size() );
+		Array< CReference< ValueType >, Base::size() + a_ReadOnlyArray.size() > Result;
+
+		for ( auto Iterator = Begin(); Iterator != End(); ++Iterator )
+		{
+			Result.emplace_back( *Iterator );
+		}
+
+		for ( auto Iterator = a_ReadOnlyArray.Begin(); Iterator != a_ReadOnlyArray.End(); ++Iterator )
+		{
+			Result.emplace_back( *Iterator );
+		}
+
 		return Result.AsReadOnly();
 	}
 
 	inline auto Data() const
 	{
 		return Base::data();
+	}
+
+	template < size_t LENGTH >
+	inline auto Difference( const ReadOnlyArray< ValueType, LENGTH >& a_ReadOnlyArray ) const
+	{
+		set< const ValueType*, LessPtr< ValueType > > SetA;
+		set< const ValueType*, LessPtr< ValueType > > SetB;
+		Array< CReference< ValueType > > Result;
+
+		for ( const auto& Entry : Underlying() )
+		{
+			SetA.insert( &Entry );
+		}
+
+		for ( const auto& Entry : a_ReadOnlyArray.Underlying() )
+		{
+			SetB.insert( &Entry );
+		}
+
+		for ( auto Iterator = SetA.begin(); Iterator != SetA.end(); ++Iterator )
+		{
+			if ( SetB.insert( *Iterator ).second )
+			{
+				Result.emplace_back( **Iterator );
+			}
+		}
+
+		return Result;
 	}
 
 	template < size_t LENGTH >
@@ -503,6 +708,74 @@ public:
 		return Base::front();
 	}
 
+	template < size_t LENGTH >
+	inline auto Intersection( const Array< ValueType, LENGTH >& a_Array ) const
+	{
+		set< const ValueType*, LessPtr< ValueType > > SetA;
+		set< const ValueType*, LessPtr< ValueType > > SetB;
+		Array< CReference< ValueType > > Result;
+
+		for ( const auto& Entry : Underlying() )
+		{
+			SetA.insert( &Entry );
+		}
+
+		for ( const auto& Entry : a_Array.Underlying() )
+		{
+			SetB.insert( &Entry );
+		}
+
+		bool SetAIsLargest = SetA.size() > SetB.size();
+		decltype( SetA )& Smallest = !SetAIsLargest ? SetA : SetB;
+		decltype( SetA )& Largest = SetAIsLargest ? SetA : SetB;
+		auto Begin = !SetAIsLargest ? SetA.begin() : SetB.begin();
+		auto End = !SetAIsLargest ? SetA.end() : SetB.end();
+
+		for ( ; Begin != End; ++Begin )
+		{
+			if ( !Largest.insert( *Begin ).second )
+			{
+				Result.emplace_back( **Begin );
+			}
+		}
+
+		return Result;
+	}
+
+	template < size_t LENGTH >
+	inline auto Intersection( const ReadOnlyArray< ValueType, LENGTH >& a_Array ) const
+	{
+		set< const ValueType*, LessPtr< ValueType > > SetA;
+		set< const ValueType*, LessPtr< ValueType > > SetB;
+		Array< CReference< ValueType > > Result;
+
+		for ( const auto& Entry : Underlying() )
+		{
+			SetA.insert( &Entry );
+		}
+
+		for ( const auto& Entry : a_Array.Underlying() )
+		{
+			SetB.insert( &Entry );
+		}
+
+		bool SetAIsLargest = SetA.size() > SetB.size();
+		decltype( SetA )& Smallest = !SetAIsLargest ? SetA : SetB;
+		decltype( SetA )& Largest = SetAIsLargest ? SetA : SetB;
+		auto Begin = !SetAIsLargest ? SetA.begin() : SetB.begin();
+		auto End = !SetAIsLargest ? SetA.end() : SetB.end();
+
+		for ( ; Begin != End; ++Begin )
+		{
+			if ( !Largest.insert( *Begin ).second )
+			{
+				Result.emplace_back( **Begin );
+			}
+		}
+
+		return Result;
+	}
+
 	inline auto MaxSize() const
 	{
 		return Base::max_size();
@@ -528,6 +801,84 @@ public:
 	inline void Swap( ReadOnlyArray< ValueType, SIZE >& a_ReadOnlyArray )
 	{
 		Base::swap( *reinterpret_cast< Base* >( &a_ReadOnlyArray ) );
+	}
+
+	template < size_t LENGTH >
+	inline auto Symmetry( const Array< ValueType, LENGTH >& a_Array ) const
+	{
+		set< const ValueType*, LessPtr< ValueType > > SetA;
+		set< const ValueType*, LessPtr< ValueType > > SetB;
+		Array< CReference< ValueType > > Result;
+
+		for ( const auto& Entry : Underlying() )
+		{
+			SetA.insert( &Entry );
+		}
+
+		for ( const auto& Entry : a_Array.Underlying() )
+		{
+			SetB.insert( &Entry );
+		}
+
+		auto IteratorA = SetA.begin();
+		auto IteratorB = SetB.begin();
+
+		while ( IteratorA != SetA.end() || IteratorB != SetB.end() )
+		{
+			while ( IteratorA != SetA.end() && ( IteratorB == SetB.end() || **( IteratorA ) < **IteratorB ) )
+			{
+				Result.emplace_back( **( IteratorA++ ) );
+			}
+
+			while ( IteratorB != SetB.end() && ( IteratorA == SetA.end() || **( IteratorB ) < **IteratorA ) )
+			{
+				Result.emplace_back( **( IteratorB++ ) );
+			}
+
+			if ( IteratorA != SetA.end() ) ++IteratorA;
+			if ( IteratorB != SetB.end() ) ++IteratorB;
+		}
+
+		return Result;
+	}
+
+	template < size_t LENGTH >
+	inline auto Symmetry( const ReadOnlyArray< ValueType, LENGTH >& a_Array ) const
+	{
+		set< const ValueType*, LessPtr< ValueType > > SetA;
+		set< const ValueType*, LessPtr< ValueType > > SetB;
+		Array< CReference< ValueType > > Result;
+
+		for ( const auto& Entry : Underlying() )
+		{
+			SetA.insert( &Entry );
+		}
+
+		for ( const auto& Entry : a_Array.Underlying() )
+		{
+			SetB.insert( &Entry );
+		}
+
+		auto IteratorA = SetA.begin();
+		auto IteratorB = SetB.begin();
+
+		while ( IteratorA != SetA.end() || IteratorB != SetB.end() )
+		{
+			while ( IteratorA != SetA.end() && ( IteratorB == SetB.end() || **( IteratorA ) < **IteratorB ) )
+			{
+				Result.emplace_back( **( IteratorA++ ) );
+			}
+
+			while ( IteratorB != SetB.end() && ( IteratorA == SetA.end() || **( IteratorB ) < **IteratorA ) )
+			{
+				Result.emplace_back( **( IteratorB++ ) );
+			}
+
+			if ( IteratorA != SetA.end() ) ++IteratorA;
+			if ( IteratorB != SetB.end() ) ++IteratorB;
+		}
+
+		return Result;
 	}
 
 	inline bool TrueForAll( const Predicate< const ValueType& >& a_Predicate ) const
@@ -559,6 +910,54 @@ public:
 	inline const auto& Underlying() const
 	{
 		return *static_cast< const Base* >( this );
+	}
+
+	template < size_t LENGTH >
+	inline auto Union( const Array< ValueType, LENGTH >& a_Array ) const
+	{
+		set< const ValueType*, LessPtr< ValueType > > UnionSet;
+		Array< CReference< ValueType > > Result;
+
+		for ( const auto& Entry : Underlying() )
+		{
+			UnionSet.insert( &Entry );
+		}
+
+		for ( const auto& Entry : a_Array.Underlying() )
+		{
+			UnionSet.insert( &Entry );
+		}
+
+		for ( const auto& Entry : UnionSet )
+		{
+			Result.EmplaceBack( *Entry );
+		}
+
+		return Result;
+	}
+
+	template < size_t LENGTH >
+	inline auto Union( const ReadOnlyArray< ValueType, LENGTH >& a_Array ) const
+	{
+		set< const ValueType*, LessPtr< ValueType > > UnionSet;
+		Array< CReference< ValueType > > Result;
+
+		for ( const auto& Entry : Underlying() )
+		{
+			UnionSet.insert( &Entry );
+		}
+
+		for ( const auto& Entry : a_Array.Underlying() )
+		{
+			UnionSet.insert( &Entry );
+		}
+
+		for ( const auto& Entry : UnionSet )
+		{
+			Result.emplace_back( *Entry );
+		}
+
+		return Result;
 	}
 
 	#pragma region Operator
@@ -611,10 +1010,10 @@ class Array : private array< ValueType, SIZE >
 public:
 
 	using Base = array< ValueType, SIZE >;
-	using Iterator = array< ValueType, SIZE >::iterator;
-	using CIterator = array< ValueType, SIZE >::const_iterator;
-	using RIterator = array< ValueType, SIZE >::reverse_iterator;
-	using CRIterator = array< ValueType, SIZE >::const_reverse_iterator;
+	using Iterator = typename array< ValueType, SIZE >::iterator;
+	using CIterator = typename array< ValueType, SIZE >::const_iterator;
+	using RIterator = typename array< ValueType, SIZE >::reverse_iterator;
+	using CRIterator = typename array< ValueType, SIZE >::const_reverse_iterator;
 
 	Array() = default;
 
@@ -720,21 +1119,40 @@ public:
 	}
 
 	template < size_t LENGTH >
-	inline auto Combine( const Array< ValueType, LENGTH >& a_Array ) const
+	inline auto Combine( Array< ValueType, LENGTH >& a_Array )
 	{
-		Array< ValueType, Base::size() + a_Array.size() > Result;
-		Result.MemCopy( 0, Base::data(), Base::size() );
-		Result.MemCopy( Base::size(), a_Array.data(), a_Array.size() );
+		Array< Reference< ValueType > > Result;
+		Result.reserve( Base::size() + a_Array.size() );
+
+		for ( auto Iterator = Begin(); Iterator != End(); ++Iterator )
+		{
+			Result.emplace_back( *Iterator );
+		}
+
+		for ( auto Iterator = a_Array.Begin(); Iterator != a_Array.End(); ++Iterator )
+		{
+			Result.emplace_back( *Iterator );
+		}
+
 		return Result;
 	}
 
-	template <>
-	inline auto Combine( const Array< ValueType >& a_Array ) const
+	template < size_t LENGTH >
+	inline auto Combine( const Array< ValueType, LENGTH >& a_Array ) const
 	{
-		Array< ValueType > Result;
-		Result.resize( Base::size() + a_Array.size() );
-		Result.MemCopy( 0, Base::data(), Base::size() );
-		Result.MemCopy( Base::size(), a_Array.data(), a_Array.size() );
+		Array< CReference< ValueType > > Result;
+		Result.reserve( Base::size() + a_Array.size() );
+
+		for ( auto Iterator = Begin(); Iterator != End(); ++Iterator )
+		{
+			Result.emplace_back( *Iterator );
+		}
+
+		for ( auto Iterator = a_Array.Begin(); Iterator != a_Array.End(); ++Iterator )
+		{
+			Result.emplace_back( *Iterator );
+		}
+
 		return Result;
 	}
 
@@ -755,11 +1173,39 @@ public:
 	}
 
 	template < size_t LENGTH >
+	inline auto Difference( Array< ValueType, LENGTH >& a_Array )
+	{
+		set< ValueType*, LessPtr< ValueType > > SetA;
+		set< ValueType*, LessPtr< ValueType > > SetB;
+		Array< Reference< ValueType > > Result;
+
+		for ( auto& Entry : Underlying() )
+		{
+			SetA.insert( &Entry );
+		}
+
+		for ( auto& Entry : a_Array.Underlying() )
+		{
+			SetB.insert( &Entry );
+		}
+
+		for ( auto Iterator = SetA.begin(); Iterator != SetA.end(); ++Iterator )
+		{
+			if ( SetB.insert( *Iterator ).second )
+			{
+				Result.emplace_back( **Iterator );
+			}
+		}
+
+		return Result;
+	}
+
+	template < size_t LENGTH >
 	inline auto Difference( const Array< ValueType, LENGTH >& a_Array ) const
 	{
 		set< const ValueType*, LessPtr< ValueType > > SetA;
 		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< ValueType > Result;
+		Array< CReference< ValueType > > Result;
 
 		for ( const auto& Entry : Underlying() )
 		{
@@ -775,7 +1221,7 @@ public:
 		{
 			if ( SetB.insert( *Iterator ).second )
 			{
-				Result.push_back( **Iterator );
+				Result.emplace_back( **Iterator );
 			}
 		}
 
@@ -1221,11 +1667,45 @@ public:
 	}
 
 	template < size_t LENGTH >
+	inline auto Intersection( Array< ValueType, LENGTH >& a_Array )
+	{
+		set< ValueType*, LessPtr< ValueType > > SetA;
+		set< ValueType*, LessPtr< ValueType > > SetB;
+		Array< Reference< ValueType > > Result;
+
+		for ( auto& Entry : Underlying() )
+		{
+			SetA.insert( &Entry );
+		}
+
+		for ( auto& Entry : a_Array.Underlying() )
+		{
+			SetB.insert( &Entry );
+		}
+
+		bool SetAIsLargest = SetA.size() > SetB.size();
+		decltype( SetA )& Smallest = !SetAIsLargest ? SetA : SetB;
+		decltype( SetA )& Largest = SetAIsLargest ? SetA : SetB;
+		auto Begin = !SetAIsLargest ? SetA.begin() : SetB.begin();
+		auto End = !SetAIsLargest ? SetA.end() : SetB.end();
+
+		for ( ; Begin != End; ++Begin )
+		{
+			if ( !Largest.insert( *Begin ).second )
+			{
+				Result.emplace_back( **Begin );
+			}
+		}
+
+		return Result;
+	}
+
+	template < size_t LENGTH >
 	inline auto Intersection( const Array< ValueType, LENGTH >& a_Array ) const
 	{
 		set< const ValueType*, LessPtr< ValueType > > SetA;
 		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< ValueType > Result;
+		Array< CReference< ValueType > > Result;
 
 		for ( const auto& Entry : Underlying() )
 		{
@@ -1247,7 +1727,7 @@ public:
 		{
 			if ( !Largest.insert( *Begin ).second )
 			{
-				Result.push_back( **Begin );
+				Result.emplace_back( **Begin );
 			}
 		}
 
@@ -1267,6 +1747,11 @@ public:
 	inline void MemSet( char a_Value, size_t a_Offset, size_t a_Size )
 	{
 		memset( reinterpret_cast< void* >( Base::data() ) + a_Offset, static_cast< int >( a_Value ), a_Size );
+	}
+
+	inline auto Partition( size_t a_Offset, size_t a_Length )
+	{
+		return Array< ValueType >( Begin() + a_Offset, Begin() + a_Offset + a_Length );
 	}
 
 	inline void Reverse()
@@ -1338,19 +1823,48 @@ public:
 		return *reinterpret_cast< const Array< ValueType, LENGTH >* >( Base::data() + OFFSET );
 	}
 
-	inline auto SubArray( size_t a_Offset, size_t a_Length )
-	{
-
-	}
-
-	inline auto SubArray( size_t a_Offset, size_t a_Length ) const
-	{
-
-	}
-
 	inline void Swap( Array< ValueType, SIZE >& a_Array )
 	{
 		return Base::swap( a_Array.Underlying() );
+	}
+
+	template < size_t LENGTH >
+	inline auto Symmetry( Array< ValueType, LENGTH >& a_Array )
+	{
+		set< ValueType*, LessPtr< ValueType > > SetA;
+		set< ValueType*, LessPtr< ValueType > > SetB;
+		Array< Reference< ValueType > > Result;
+
+		for ( auto& Entry : Underlying() )
+		{
+			SetA.insert( &Entry );
+		}
+
+		for ( auto& Entry : a_Array.Underlying() )
+		{
+			SetB.insert( &Entry );
+		}
+
+		auto IteratorA = SetA.begin();
+		auto IteratorB = SetB.begin();
+
+		while ( IteratorA != SetA.end() || IteratorB != SetB.end() )
+		{
+			while ( IteratorA != SetA.end() && ( IteratorB == SetB.end() || **( IteratorA ) < **IteratorB ) )
+			{
+				Result.push_back( **( IteratorA++ ) );
+			}
+
+			while ( IteratorB != SetB.end() && ( IteratorA == SetA.end() || **( IteratorB ) < **IteratorA ) )
+			{
+				Result.push_back( **( IteratorB++ ) );
+			}
+
+			if ( IteratorA != SetA.end() ) ++IteratorA;
+			if ( IteratorB != SetB.end() ) ++IteratorB;
+		}
+
+		return Result;
 	}
 
 	template < size_t LENGTH >
@@ -1358,7 +1872,7 @@ public:
 	{
 		set< const ValueType*, LessPtr< ValueType > > SetA;
 		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< ValueType > Result;
+		Array< CReference< ValueType > > Result;
 
 		for ( const auto& Entry : Underlying() )
 		{
@@ -1377,12 +1891,12 @@ public:
 		{
 			while ( IteratorA != SetA.end() && ( IteratorB == SetB.end() || **( IteratorA ) < **IteratorB ) )
 			{
-				Result.push_back( **( IteratorA++ ) );
+				Result.emplace_back( **( IteratorA++ ) );
 			}
 
 			while ( IteratorB != SetB.end() && ( IteratorA == SetA.end() || **( IteratorB ) < **IteratorA ) )
 			{
-				Result.push_back( **( IteratorB++ ) );
+				Result.emplace_back( **( IteratorB++ ) );
 			}
 
 			if ( IteratorA != SetA.end() ) ++IteratorA;
@@ -1453,12 +1967,36 @@ public:
 	{
 		return *static_cast< const Base* >( this );
 	}
+	
+	template < size_t LENGTH >
+	inline auto Union( Array< ValueType, LENGTH >& a_Array )
+	{
+		set< ValueType*, LessPtr< ValueType > > UnionSet;
+		Array< Reference< ValueType > > Result;
+
+		for ( auto& Entry : Underlying() )
+		{
+			UnionSet.insert( &Entry );
+		}
+
+		for ( auto& Entry : a_Array.Underlying() )
+		{
+			UnionSet.insert( &Entry );
+		}
+
+		for ( auto& Entry : UnionSet )
+		{
+			Result.emplace_back( *Entry );
+		}
+
+		return Result;
+	}
 
 	template < size_t LENGTH >
 	inline auto Union( const Array< ValueType, LENGTH >& a_Array ) const
 	{
 		set< const ValueType*, LessPtr< ValueType > > UnionSet;
-		Array< ValueType > Result;
+		Array< CReference< ValueType > > Result;
 
 		for ( const auto& Entry : Underlying() )
 		{
@@ -1472,15 +2010,15 @@ public:
 		
 		for ( const auto& Entry : UnionSet )
 		{
-			Result.push_back( *Entry );
+			Result.emplace_back( *Entry );
 		}
 
 		return Result;
 	}
 
-	inline auto Zero()
+	inline void ZeroAll()
 	{
-		return static_cast< ValueType* >( memset( Base::data(), 0, sizeof( Base ) ) );
+		memset( Base::data(), 0, sizeof( Base ) );
 	}
 
 	inline auto Zero( size_t a_Position )
@@ -1488,9 +2026,9 @@ public:
 		return static_cast< ValueType* >( memset( Base::data() + a_Position, 0, sizeof( ValueType ) ) );
 	}
 
-	inline auto Zero( size_t a_Start, size_t a_Length )
+	inline void Zero( size_t a_Start, size_t a_Length )
 	{
-		return static_cast< ValueType* >( memset( Base::data() + a_Start, 0, sizeof( ValueType ) * a_Length ) );
+		memset( Base::data() + a_Start, 0, sizeof( ValueType ) * a_Length );
 	}
 
 	#pragma region Operator
@@ -1589,6 +2127,7 @@ public:
 
 private:
 
+	template < class, size_t > friend class ReadOnlyArry;
 	template < class, size_t > friend class Array;
 
 };
@@ -1609,10 +2148,10 @@ class Array< ValueType, size_t( -1 ) > : private vector< ValueType >
 public:
 
 	using Base = vector< ValueType >;
-	using Iterator = vector< ValueType >::iterator;
-	using CIterator = vector< ValueType >::const_iterator;
-	using RIterator = vector< ValueType >::reverse_iterator;
-	using CRIterator = vector< ValueType >::const_reverse_iterator;
+	using Iterator = typename vector< ValueType >::iterator;
+	using CIterator = typename vector< ValueType >::const_iterator;
+	using RIterator = typename vector< ValueType >::reverse_iterator;
+	using CRIterator = typename vector< ValueType >::const_reverse_iterator;
 
 	Array() = default;
 
@@ -1657,6 +2196,16 @@ public:
 		}
 
 		Base::insert( Base::begin(), Beg, End );
+	}
+
+	inline auto AsEnumerable()
+	{
+		return Enumerable< ValueType >( Begin(), End() );
+	}
+
+	inline auto AsEnumerable() const
+	{
+		return CEnumerable< ValueType >( Begin(), End() );
 	}
 
 	inline void Assign( const ValueType& a_Value )
@@ -1714,12 +2263,40 @@ public:
 	}
 
 	template < size_t LENGTH >
+	inline auto Combine( Array< ValueType, LENGTH >& a_Array )
+	{
+		Array< Reference< ValueType > > Result;
+		Result.reserve( Base::size() + a_Array.size() );
+
+		for ( auto Iterator = Begin(); Iterator != End(); ++Iterator )
+		{
+			Result.emplace_back( *Iterator );
+		}
+
+		for ( auto Iterator = a_Array.Begin(); Iterator != a_Array.End(); ++Iterator )
+		{
+			Result.emplace_back( *Iterator );
+		}
+
+		return Result;
+	}
+
+	template < size_t LENGTH >
 	inline auto Combine( const Array< ValueType, LENGTH >& a_Array ) const
 	{
-		Array< ValueType > Result;
-		Result.resize( Base::size() + a_Array.size() );
-		Result.MemCopy( 0, Base::data(), Base::size() );
-		Result.MemCopy( Base::size(), a_Array.data(), a_Array.size() );
+		Array< CReference< ValueType > > Result;
+		Result.reserve( Base::size() + a_Array.size() );
+
+		for ( auto Iterator = Begin(); Iterator != End(); ++Iterator )
+		{
+			Result.emplace_back( *Iterator );
+		}
+
+		for ( auto Iterator = a_Array.Begin(); Iterator != a_Array.End(); ++Iterator )
+		{
+			Result.emplace_back( *Iterator );
+		}
+
 		return Result;
 	}
 
@@ -1740,11 +2317,39 @@ public:
 	}
 
 	template < size_t LENGTH >
+	inline auto Difference( Array< ValueType, LENGTH >& a_Array )
+	{
+		set< ValueType*, LessPtr< ValueType > > SetA;
+		set< ValueType*, LessPtr< ValueType > > SetB;
+		Array< Reference< ValueType > > Result;
+
+		for ( auto& Entry : Underlying() )
+		{
+			SetA.insert( &Entry );
+		}
+
+		for ( auto& Entry : a_Array.Underlying() )
+		{
+			SetB.insert( &Entry );
+		}
+
+		for ( auto Iterator = SetA.begin(); Iterator != SetA.end(); ++Iterator )
+		{
+			if ( SetB.insert( *Iterator ).second )
+			{
+				Result.emplace_back( **Iterator );
+			}
+		}
+
+		return Result;
+	}
+
+	template < size_t LENGTH >
 	inline auto Difference( const Array< ValueType, LENGTH >& a_Array ) const
 	{
 		set< const ValueType*, LessPtr< ValueType > > SetA;
 		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< ValueType > Result;
+		Array< CReference< ValueType > > Result;
 
 		for ( const auto& Entry : Underlying() )
 		{
@@ -1760,7 +2365,7 @@ public:
 		{
 			if ( SetB.insert( *Iterator ).second )
 			{
-				Result.push_back( **Iterator );
+				Result.emplace_back( **Iterator );
 			}
 		}
 
@@ -2254,11 +2859,45 @@ public:
 	}
 
 	template < size_t LENGTH >
+	inline auto Intersection( Array< ValueType, LENGTH >& a_Array )
+	{
+		set< ValueType*, LessPtr< ValueType > > SetA;
+		set< ValueType*, LessPtr< ValueType > > SetB;
+		Array< Reference< ValueType > > Result;
+
+		for ( auto& Entry : Underlying() )
+		{
+			SetA.insert( &Entry );
+		}
+
+		for ( auto& Entry : a_Array.Underlying() )
+		{
+			SetB.insert( &Entry );
+		}
+
+		bool SetAIsLargest = SetA.size() > SetB.size();
+		decltype( SetA )& Smallest = !SetAIsLargest ? SetA : SetB;
+		decltype( SetA )& Largest = SetAIsLargest ? SetA : SetB;
+		auto Begin = !SetAIsLargest ? SetA.begin() : SetB.begin();
+		auto End = !SetAIsLargest ? SetA.end() : SetB.end();
+
+		for ( ; Begin != End; ++Begin )
+		{
+			if ( !Largest.insert( *Begin ).second )
+			{
+				Result.emplace_back( **Begin );
+			}
+		}
+
+		return Result;
+	}
+
+	template < size_t LENGTH >
 	inline auto Intersection( const Array< ValueType, LENGTH >& a_Array ) const
 	{
 		set< const ValueType*, LessPtr< ValueType > > SetA;
 		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< ValueType > Result;
+		Array< CReference< ValueType > > Result;
 
 		for ( const auto& Entry : Underlying() )
 		{
@@ -2280,7 +2919,7 @@ public:
 		{
 			if ( !Largest.insert( *Begin ).second )
 			{
-				Result.push_back( **Begin );
+				Result.emplace_back( **Begin );
 			}
 		}
 
@@ -2300,6 +2939,11 @@ public:
 	inline void MemSet( char a_Value, size_t a_Offset, size_t a_Size )
 	{
 		memset( reinterpret_cast< void* >( Base::data() ) + a_Offset, static_cast< int >( a_Value ), a_Size );
+	}
+
+	inline auto Partition( size_t a_Offset, size_t a_Length )
+	{
+		return Array< ValueType >( Begin() + a_Offset, Begin() + a_Offset + a_Length );
 	}
 
 	inline void PopBack()
@@ -2407,11 +3051,50 @@ public:
 	}
 
 	template < size_t LENGTH >
+	inline auto Symmetry( Array< ValueType, LENGTH >& a_Array )
+	{
+		set< ValueType*, LessPtr< ValueType > > SetA;
+		set< ValueType*, LessPtr< ValueType > > SetB;
+		Array< Reference< ValueType > > Result;
+
+		for ( auto& Entry : Underlying() )
+		{
+			SetA.insert( &Entry );
+		}
+
+		for ( auto& Entry : a_Array.Underlying() )
+		{
+			SetB.insert( &Entry );
+		}
+
+		auto IteratorA = SetA.begin();
+		auto IteratorB = SetB.begin();
+
+		while ( IteratorA != SetA.end() || IteratorB != SetB.end() )
+		{
+			while ( IteratorA != SetA.end() && ( IteratorB == SetB.end() || **( IteratorA ) < **IteratorB ) )
+			{
+				Result.push_back( **( IteratorA++ ) );
+			}
+
+			while ( IteratorB != SetB.end() && ( IteratorA == SetA.end() || **( IteratorB ) < **IteratorA ) )
+			{
+				Result.push_back( **( IteratorB++ ) );
+			}
+
+			if ( IteratorA != SetA.end() ) ++IteratorA;
+			if ( IteratorB != SetB.end() ) ++IteratorB;
+		}
+
+		return Result;
+	}
+
+	template < size_t LENGTH >
 	inline auto Symmetry( const Array< ValueType, LENGTH >& a_Array ) const
 	{
 		set< const ValueType*, LessPtr< ValueType > > SetA;
 		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< ValueType > Result;
+		Array< CReference< ValueType > > Result;
 
 		for ( const auto& Entry : Underlying() )
 		{
@@ -2430,12 +3113,12 @@ public:
 		{
 			while ( IteratorA != SetA.end() && ( IteratorB == SetB.end() || **( IteratorA ) < **IteratorB ) )
 			{
-				Result.push_back( **( IteratorA++ ) );
+				Result.emplace_back( **( IteratorA++ ) );
 			}
 
 			while ( IteratorB != SetB.end() && ( IteratorA == SetA.end() || **( IteratorB ) < **IteratorA ) )
 			{
-				Result.push_back( **( IteratorB++ ) );
+				Result.emplace_back( **( IteratorB++ ) );
 			}
 
 			if ( IteratorA != SetA.end() ) ++IteratorA;
@@ -2508,10 +3191,34 @@ public:
 	}
 
 	template < size_t LENGTH >
+	inline auto Union( Array< ValueType, LENGTH >& a_Array )
+	{
+		set< ValueType*, LessPtr< ValueType > > UnionSet;
+		Array< Reference< ValueType > > Result;
+
+		for ( auto& Entry : Underlying() )
+		{
+			UnionSet.insert( &Entry );
+		}
+
+		for ( auto& Entry : a_Array.Underlying() )
+		{
+			UnionSet.insert( &Entry );
+		}
+
+		for ( auto& Entry : UnionSet )
+		{
+			Result.emplace_back( *Entry );
+		}
+
+		return Result;
+	}
+
+	template < size_t LENGTH >
 	inline auto Union( const Array< ValueType, LENGTH >& a_Array ) const
 	{
 		set< const ValueType*, LessPtr< ValueType > > UnionSet;
-		Array< ValueType > Result;
+		Array< CReference< ValueType > > Result;
 
 		for ( const auto& Entry : Underlying() )
 		{
@@ -2525,15 +3232,15 @@ public:
 
 		for ( const auto& Entry : UnionSet )
 		{
-			Result.push_back( *Entry );
+			Result.emplace_back( *Entry );
 		}
 
 		return Result;
 	}
 
-	inline auto Zero()
+	inline void ZeroAll()
 	{
-		return static_cast< ValueType* >( memset( Base::data(), 0, Base::size() * sizeof( ValueType ) ) );
+		memset( Base::data(), 0, Base::size() * sizeof( ValueType ) );
 	}
 
 	inline auto Zero( size_t a_Position )
@@ -2541,13 +3248,13 @@ public:
 		return static_cast< ValueType* >( memset( Base::data() + a_Position, 0, sizeof( ValueType ) ) );
 	}
 
-	inline auto Zero( size_t a_Start, size_t a_Length )
+	inline void Zero( size_t a_Start, size_t a_Length )
 	{
-		return static_cast< ValueType* >( memset( Base::data() + a_Start, 0, sizeof( ValueType ) * a_Length ) );
+		memset( Base::data() + a_Start, 0, sizeof( ValueType ) * a_Length );
 	}
 
 	#pragma region Operator
-	auto& operator=( Base&& a_Array )
+	auto& operator=( const Base&& a_Array )
 	{
 		return Base::operator=( a_Array );
 	}
@@ -2662,6 +3369,7 @@ public:
 
 private:
 
+	template < class, size_t > friend class ReadOnlyArry;
 	template < class, size_t > friend class Array;
 
 };
