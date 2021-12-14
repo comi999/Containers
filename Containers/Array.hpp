@@ -15,6 +15,15 @@
 
 using namespace std;
 
+template < typename T >
+class RefArray;
+
+template < typename T >
+class CRefArray;
+
+template < typename T, size_t SIZE >
+class ReadOnlyArray;
+
 template < typename T, size_t SIZE >
 class Array;
 
@@ -165,7 +174,180 @@ public:
 
 	};
 	
-	RefArray( const InitializerList< ValueType >)
+	class CIterator
+	{
+
+	};
+
+	template < typename Iter, typename = ContainerTraits::EnableIfIterType< Iter, ValueType > >
+	RefArray( Iter a_Begin, Iter a_End )
+	{
+		if constexpr ( _Is_random_iter_v< Iter > )
+		{
+			Base::reserve( a_End - a_Begin );
+		}
+
+		for ( ; a_Begin != a_End; ++a_Begin )
+		{
+			Base::emplace_back( *a_Begin );
+		}
+	}
+
+	template < typename Container, typename = ContainerTraits::EnableIfContainer< Container, ValueType > >
+	RefArray( Container& a_Container )
+	{
+		Base::reserve( ContainerTraits::Size( a_Container ) );
+
+		auto Beg = ContainerTraits::Begin( a_Container );
+		auto End = ContainerTraits::End( a_Container );
+
+		for ( ; Beg != End; ++Beg  )
+		{
+			Base::emplace_back( *Beg );
+		}
+	}
+
+	inline auto AsEnumerable()
+	{
+
+	}
+
+	inline auto AsEnumerable() const
+	{
+
+	}
+
+	inline void Assign( const ValueType& a_ValueType )
+	{
+		for ( auto Beg = Base::begin(); Beg != Base::end(); ++Beg )
+		{
+			Beg->Get() = a_ValueType;
+		}
+	}
+
+	inline void Assign( Iterator a_Begin, Iterator a_End, const ValueType& a_ValueType )
+	{
+		for ( ; a_Begin != a_End; ++a_Begin )
+		{
+			a_Begin->Get() = a_ValueType;
+		}
+	}
+
+	inline auto& At( size_t a_Position )
+	{
+		return Base::at( a_Position ).Get();
+	}
+
+	inline const auto& At( size_t a_Position ) const
+	{
+		return Base::at( a_Position ).Get();
+	}
+
+	inline auto& Back()
+	{
+		return Base::back().Get();
+	}
+
+	inline const auto& Back() const
+	{
+		return Base::back().Get();
+	}
+
+	inline auto Capacity() const
+	{
+		return Base::capacity();
+	}
+
+	inline void Clear()
+	{
+		Base::clear();
+	}
+
+	inline auto Combine( RefArray< ValueType >& a_RefArray )
+	{
+		RefArray< ValueType > Result;
+		Result.reserve( Base::size() + a_RefArray.size() );
+
+		for ( auto Beg = Base::begin(); Beg != Base::end(); ++Beg )
+		{
+			Result.push_back( *Beg );
+		}
+
+		for ( auto Beg = a_RefArray.begin(); Beg != a_RefArray.end(); ++Beg )
+		{
+			Result.push_back( *Beg );
+		}
+
+		return Result;
+	}
+
+	inline auto Combine( const CRefArray< ValueType >& a_RefArray ) const
+	{
+		CRefArray< ValueType > Result;
+		Result.reserve( Base::size() + a_RefArray.size() );
+
+		for ( auto Beg = Base::begin(); Beg != Base::end(); ++Beg )
+		{
+			Result.push_back( *Beg );
+		}
+
+		for ( auto Beg = a_RefArray.begin(); Beg != a_RefArray.end(); ++Beg )
+		{
+			Result.push_back( *Beg );
+		}
+
+		return Result;
+	}
+	
+	inline void CopyTo( RefArray< ValueType >& a_RefArray )
+	{
+
+	}
+
+	inline void CopyTo( CRefArray< ValueType >& a_CRefArray ) const
+	{
+
+	}
+
+	inline auto Data()
+	{
+		return Base::data();
+	}
+
+	inline auto Data() const
+	{
+		return Base::data();
+	}
+	
+	inline auto Difference( RefArray< ValueType >& a_RefArray )
+	{
+
+	}
+
+	inline auto Difference( const CRefArray< ValueType >& a_CRefArray ) const
+	{
+
+	}
+
+	inline bool Empty() const
+	{
+		return Base::empty();
+	}
+
+	inline bool Erase( CIterator a_Where )
+	{
+
+	}
+
+	inline bool Equals( const RefArray< ValueType >& a_RefArray ) const
+	{
+
+	}
+
+	inline bool Exists( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+
+	}
 };
 
 template < typename ValueType >
@@ -1077,17 +1259,6 @@ public:
 	inline void Assign( const ValueType& a_Value )
 	{
 		Base::assign( a_Value );
-	}
-
-	inline void Assign( size_t a_Position, size_t a_Length, const ValueType& a_Value )
-	{
-		auto Begin = Base::data() + a_Position;
-		auto End = Begin + a_Length;
-
-		for ( ; Begin < End; ++Begin )
-		{
-			*Begin = a_Value;
-		}
 	}
 
 	inline void Assign( Iterator a_Begin, Iterator a_End, const ValueType& a_Value )
