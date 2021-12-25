@@ -552,33 +552,32 @@ void RunTests()
 
 struct Struct
 {
-    int _a, _b;
-    Struct( int a, int b )
+    Struct() = default;
+    Struct( Struct& s )
     {
-        _a = a;
-        _b = b;
+
     }
 };
+
+template < typename T >
+struct Test
+{
+    /*void Func( T& t )
+    {
+        Value[0] = t;
+    }*/
+
+    void Func( T& t )
+    {
+        Value[ 0 ] = t;
+    }
+
+    T Value[1];
+};
+
+
 
 int main()
 {
 
-    //RunTests();
-    Cont< int > c;
-    const Array< int, 10 > arr = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    Array< int > arr1 = { 1, 2, 3, 4, 56, 7, 8, 9, 9 };
-    vector< int > v0 = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    vector< int > v1 = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-    list< int > l = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    //set< int > s = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    vector< Struct > structs = { { 0, 0 }, { 1, 1 } };
-
-    Enumerable< int > en0( c );
-    Enumerable< int > en1( v1 );
-
-    en1.Zero( 1, 4 );
-
-    auto& val = en0[ 5 ];
-
-    //const auto en = arr.AsEnumerable();
 }

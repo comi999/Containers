@@ -179,6 +179,21 @@ public:
 
 	};
 
+	template < size_t LENGTH >
+	RefArray( ValueType( *a_Array )[ LENGTH ] )
+	{
+
+	}
+
+	RefArray( InitializerList< ValueType >& a_InitializerList )
+	{
+	}
+
+	RefArray( InitializerList< ValueType >&& a_InitializerList )
+	{
+
+	}
+
 	template < typename Iter, typename = ContainerTraits::EnableIfIterType< Iter, ValueType > >
 	RefArray( Iter a_Begin, Iter a_End )
 	{
@@ -207,6 +222,24 @@ public:
 		}
 	}
 
+	template < size_t LENGTH >
+	inline void Append( ValueType( *a_Array )[ LENGTH ] )
+	{
+
+	}
+
+	template < typename Container, typename = ContainerTraits::EnableIfContainer< Container, ValueType > >
+	inline void Append( Container& a_Container )
+	{
+
+	}
+
+	template < typename Iter, typename = ContainerTraits::EnableIfIterType< Iter, ValueType > >
+	inline void Append( Iter a_Begin, const Iter& a_End )
+	{
+
+	}
+
 	inline auto AsEnumerable()
 	{
 
@@ -225,7 +258,7 @@ public:
 		}
 	}
 
-	inline void Assign( Iterator a_Begin, Iterator a_End, const ValueType& a_ValueType )
+	inline void Assign( Iterator a_Begin, const Iterator& a_End, const ValueType& a_ValueType )
 	{
 		for ( ; a_Begin != a_End; ++a_Begin )
 		{
@@ -281,30 +314,7 @@ public:
 		return Result;
 	}
 
-	inline auto Combine( const CRefArray< ValueType >& a_RefArray ) const
-	{
-		CRefArray< ValueType > Result;
-		Result.reserve( Base::size() + a_RefArray.size() );
-
-		for ( auto Beg = Base::begin(); Beg != Base::end(); ++Beg )
-		{
-			Result.push_back( *Beg );
-		}
-
-		for ( auto Beg = a_RefArray.begin(); Beg != a_RefArray.end(); ++Beg )
-		{
-			Result.push_back( *Beg );
-		}
-
-		return Result;
-	}
-	
 	inline void CopyTo( RefArray< ValueType >& a_RefArray )
-	{
-
-	}
-
-	inline void CopyTo( CRefArray< ValueType >& a_CRefArray ) const
 	{
 
 	}
@@ -324,19 +334,9 @@ public:
 
 	}
 
-	inline auto Difference( const CRefArray< ValueType >& a_CRefArray ) const
-	{
-
-	}
-
 	inline bool Empty() const
 	{
 		return Base::empty();
-	}
-
-	inline bool Erase( CIterator a_Where )
-	{
-
 	}
 
 	inline bool Equals( const RefArray< ValueType >& a_RefArray ) const
@@ -345,6 +345,131 @@ public:
 	}
 
 	inline bool Exists( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+
+	}
+
+	inline auto Find( const ValueType& a_Value )
+	{
+		// return Iterator
+	}
+
+	inline auto Find( const ValueType& a_Value ) const
+	{
+		// return CIterator
+	}
+
+	inline auto Find( const Predicate< const ValueType& >& a_Predicate )
+	{
+		// return Iterator
+	}
+
+	inline auto Find( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		// return CIterator
+	}
+
+	inline auto Find( Iterator a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate )
+	{
+		// return Iterator
+	}
+
+	inline auto Find( CIterator a_Begin, const CIterator& a_End, const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		// return CIterator
+	}
+
+	inline auto FindAll( const Predicate< const ValueType& >& a_Predicate )
+	{
+
+	}
+
+	inline auto FindAll( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+
+	}
+
+	inline auto FindAll( Iterator a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate )
+	{
+
+	}
+
+	inline auto FindAll( CIterator a_Begin, const CIterator& a_End, const Predicate< const ValueType& >& a_Predicate ) const
+	{
+
+	}
+
+	inline auto FindLast( const ValueType& a_Value )
+	{
+
+	}
+
+	inline auto FindLast( const ValueType& a_Value ) const
+	{
+
+	}
+
+	inline auto FindLast( const Predicate< const ValueType& >& a_Predicate )
+	{
+
+	}
+
+	inline auto FindLast( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+
+	}
+
+	inline auto FindLast( Iterator a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate )
+	{
+
+	}
+
+	inline auto FindLast( Iterator a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate ) const
+	{
+
+	}
+
+	inline void ForEach( const Action< ValueType& >& a_Action )
+	{
+
+	}
+
+	inline void ForEach( const Action< const ValueType& >& a_Action ) const
+	{
+
+	}
+
+	inline void ForEach( Iterator a_Begin, const Iterator& a_End, const Action< ValueType& >& a_Action )
+	{
+
+	}
+
+	inline void ForEach( CIterator a_Begin, const CIterator& a_End, const Action< const ValueType& >& a_Action ) const
+	{
+
+	}
+
+	inline auto& Front()
+	{
+
+	}
+
+	inline const auto& Front() const
+	{
+
+	}
+
+	inline size_t IndexOf( const ValueType& a_Value ) const
+	{
+
+	}
+
+	inline void Insert( const Iterator& a_Where, ValueType& a_Value )
+	{
+
+	}
+
+	inline auto Intersection( const RefArray< ValueType >& a_RefArray ) const
 	{
 
 	}
@@ -1993,7 +2118,7 @@ public:
 	{
 		return *reinterpret_cast< const Array< ValueType, LENGTH >* >( Base::data() + OFFSET );
 	}
-
+	
 	inline void Swap( Array< ValueType, SIZE >& a_Array )
 	{
 		return Base::swap( a_Array.Underlying() );
