@@ -8,24 +8,19 @@
 #include "Enumerable.hpp"
 #include "ContainerTraits.hpp"
 
-// ReadOnlyArray
-// - Stores items as const. Individual entries cannot be change, but they can be moved, reordered, sorted, swapped.
-// - Can be swapped or moved to another read only array.
-// - Nothing can be added or removed.
-
 using namespace std;
 
 template < typename T >
 class RefArray;
 
 template < typename T >
-class CRefArray;
-
-template < typename T, size_t SIZE >
-class ReadOnlyArray;
+class ReadOnlyRefArray;
 
 template < typename T, size_t SIZE >
 class Array;
+
+template < typename T, size_t SIZE >
+class ReadOnlyArray;
 
 template < typename ValueType >
 using InitializerList = initializer_list< ValueType >;
@@ -476,7 +471,7 @@ public:
 };
 
 template < typename ValueType >
-class CRefArray : private vector< CReference< ValueType > >
+class ReadOnlyRefArray : private vector< CReference< ValueType > >
 {
 
 };
@@ -484,7 +479,6 @@ class CRefArray : private vector< CReference< ValueType > >
 template < typename ValueType, size_t SIZE >
 class ReadOnlyArray : private array< ValueType, SIZE >
 {
-
 	template < typename T >
 	struct LessPtr
 	{
@@ -501,29 +495,57 @@ public:
 	using CRIterator = typename array< ValueType, SIZE >::const_reverse_iterator;
 
 	template < size_t LENGTH >
-	ReadOnlyArray( const ReadOnlyArray< ValueType, LENGTH >& a_ReadOnlyArray )
+	ReadOnlyArray( ValueType( *a_Array )[ LENGTH ] )
 	{
-		memcpy( Base::data(), a_ReadOnlyArray.data(), ( a_ReadOnlyArray().size() < Base::size() ? a_ReadOnlyArray.size() : Base::size() ) * sizeof( ValueType ) );
+		size_t Size = LENGTH > SIZE ? SIZE : LENGTH;
+		size_t Index = 0;
+
+		for ( auto Beg = Base::begin(); Index < Size; ++Index, ++Beg )
+		{
+			*Beg = a_Array[ Index ];
+		}
 	}
 
-	template < size_t LENGTH >
-	ReadOnlyArray( const Array< ValueType, LENGTH >& a_Array )
+	template < typename Container >
+	ReadOnlyArray( Container& a_Container )
 	{
-		memcpy( Base::data(), a_Array.Data(), ( a_Array.Size() < Base::size() ? a_Array.Size() : Base::size() ) * sizeof( ValueType ) );
+		typename Base::iterator BegA( Base::begin() );
+		typename Base::iterator EndA( Base::end() );
+		auto BegB = ContainerTraits::Begin( a_Container );
+		auto EndB = ContainerTraits::End( a_Container );
+		
+		for ( ; BegA != EndA && BegB != EndB; ++BegA, ++BegB )
+		{
+			*BegA = *BegB;
+		}
 	}
 
 	ReadOnlyArray( const InitializerList< ValueType >& a_InitializerList )
 	{
-		memcpy( Base::data(), a_InitializerList.begin(), ( a_InitializerList.size() < Base::size() ? a_InitializerList.size() : Base::size() ) * sizeof( ValueType ) );
+		size_t Size = a_InitializerList.size() < SIZE ? a_InitializerList.size() : SIZE;
+		auto BegA = Base::begin();
+		auto BegB = a_InitializerList.begin();
+
+		for ( size_t Index = 0; Index < Size; ++Index, ++BegA, ++BegB )
+		{
+			*BegA = *BegB;
+		}
 	}
 
 	ReadOnlyArray( const InitializerList< ValueType >&& a_InitializerList )
 	{
-		memcpy( Base::data(), a_InitializerList.begin(), ( a_InitializerList.size() < Base::size() ? a_InitializerList.size() : Base::size() ) * sizeof( ValueType ) );
-	}
+		size_t Size = a_InitializerList.size() < SIZE ? a_InitializerList.size() : SIZE;
+		auto BegA = Base::begin();
+		auto BegB = a_InitializerList.begin();
 
-	template < typename Iter, typename = ContainerTraits::EnableIfIterType< Iter, ValueType > >
-	ReadOnlyArray( Iter a_Begin, Iter a_End )
+		for ( size_t Index = 0; Index < Size; ++Index, ++BegA, ++BegB )
+		{
+			*BegA = *BegB;
+		}
+	}
+	
+	template < typename Iter >
+	ReadOnlyArray( Iter a_Begin, const Iter& a_End )
 	{
 		typename Base::iterator Beg( Base::begin() );
 		typename Base::iterator End( Base::end() );
@@ -534,18 +556,14 @@ public:
 		}
 	}
 
-	template < typename Container, typename = ContainerTraits::EnableIfContainer< Container, ValueType > >
-	ReadOnlyArray( const Container& a_Container )
+	inline auto AsReadOnlyEnumerable() const
 	{
-		auto BegC = ContainerTraits::Begin( a_Container );
-		auto EndC = ContainerTraits::End( a_Container );
-		typename Base::iterator Beg( Base::begin() );
-		typename Base::iterator End( Base::end() );
+		return ReadOnlyEnumerable< ValueType >( *this );
+	}
 
-		for ( ; BegC != EndC && Beg != End; ++BegC, ++Beg )
-		{
-			*Beg = *BegC;
-		}
+	inline auto AsReadOnlyRefArray() const
+	{
+		return ReadOnlyRefArray( *this );
 	}
 
 	inline constexpr auto& At( size_t a_Position ) const
@@ -558,22 +576,47 @@ public:
 		return Base::back();
 	}
 
-	template < size_t LENGTH >
-	inline auto Combine( const ReadOnlyArray< ValueType, LENGTH >& a_ReadOnlyArray ) const
+	inline constexpr auto Capacity() const
 	{
-		Array< CReference< ValueType >, Base::size() + a_ReadOnlyArray.size() > Result;
+		return Base::size();
+	}
 
-		for ( auto Iterator = Begin(); Iterator != End(); ++Iterator )
+	template < typename Container >
+	auto Combine( Container& a_Container ) const
+	{
+		ReadOnlyRefArray< ValueType > Result;
+		Result.reserve( ContainerTraits::Size( a_Container ) + Base::size() );
+
+		auto BegA = Base::begin();
+		auto EndA = Base::end();
+		auto BegB = ContainerTraits::Begin( a_Container );
+		auto EndB = ContainerTraits::End( a_Container );
+
+		for ( ; BegA != EndA; ++BegA )
 		{
-			Result.emplace_back( *Iterator );
+			Result.push_back( *BegA );
 		}
 
-		for ( auto Iterator = a_ReadOnlyArray.Begin(); Iterator != a_ReadOnlyArray.End(); ++Iterator )
+		for ( ; BegB != EndB; ++BegB )
 		{
-			Result.emplace_back( *Iterator );
+			Result.push_back( *BegB );
 		}
 
-		return Result.AsReadOnly();
+		return Result;
+	}
+
+	template < typename Container >
+	auto CopyTo( Container& a_Container ) const
+	{
+		auto BegA = Base::begin();
+		auto EndA = Base::end();
+		auto BegB = ContainerTraits::Begin( a_Container );
+		auto EndB = ContainerTraits::End( a_Container );
+
+		for ( ; BegA != EndA && BegB != EndB; ++BegA, ++BegB )
+		{
+			*BegB = *BegA;
+		}
 	}
 
 	inline auto Data() const
@@ -581,21 +624,24 @@ public:
 		return Base::data();
 	}
 
-	template < size_t LENGTH >
-	inline auto Difference( const ReadOnlyArray< ValueType, LENGTH >& a_ReadOnlyArray ) const
+	template < typename Container >
+	inline auto Difference( Container& a_Container ) const
 	{
 		set< const ValueType*, LessPtr< ValueType > > SetA;
 		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< CReference< ValueType > > Result;
+		ReadOnlyRefArray< ValueType > Result;
 
 		for ( const auto& Entry : Underlying() )
 		{
 			SetA.insert( &Entry );
 		}
 
-		for ( const auto& Entry : a_ReadOnlyArray.Underlying() )
+		auto Beg = ContainerTraits::Begin( a_Container );
+		auto End = ContainerTraits::End( a_Container );
+
+		for ( ; Beg != End; ++Beg )
 		{
-			SetB.insert( &Entry );
+			SetB.insert( &*Beg );
 		}
 
 		for ( auto Iterator = SetA.begin(); Iterator != SetA.end(); ++Iterator )
@@ -609,20 +655,20 @@ public:
 		return Result;
 	}
 
-	template < size_t LENGTH >
-	inline bool Equals( const ReadOnlyArray< ValueType, LENGTH >& a_ReadOnlyArray ) const
+	template < typename Container >
+	inline bool Equals( Container& a_Container ) const
 	{
-		if constexpr ( Base::size() != a_ReadOnlyArray.size() )
+		if constexpr ( Base::size() != ContainerTraits::Size( a_Container ) )
 		{
 			return false;
 		}
 
-		const char* Array1 = reinterpret_cast< const char* >( Base::data() );
-		const char* Array2 = reinterpret_cast< const char* >( a_ReadOnlyArray.data() );
+		auto BegA = Base::begin();
+		auto BegB = ContainerTraits::Begin( a_Container );
 
-		for ( size_t i = 0; i < Base::size() * sizeof( ValueType ); ++i )
+		for ( size_t Size = Base::size(); Size > 0; --Size, ++BegA, ++BegB )
 		{
-			if ( Array1[ i ] != Array2[ i ] )
+			if ( *BegA != *BegB )
 			{
 				return false;
 			}
@@ -631,26 +677,17 @@ public:
 		return true;
 	}
 
-	template < size_t LENGTH >
-	inline bool Equals( const Array< ValueType, LENGTH >& a_Array ) const
+	bool Exists( const ValueType& a_Value ) const
 	{
-		if constexpr ( Base::size() != a_Array.size() )
+		for ( const auto& Entry : Underlying() )
 		{
-			return false;
-		}
-
-		const char* Array1 = reinterpret_cast< const char* >( Base::data() );
-		const char* Array2 = reinterpret_cast< const char* >( a_Array.data() );
-
-		for ( size_t i = 0; i < Base::size() * sizeof( ValueType ); ++i )
-		{
-			if ( Array1[ i ] != Array2[ i ] )
+			if ( Entry == a_Value )
 			{
-				return false;
+				return true;
 			}
 		}
 
-		return true;
+		return false;
 	}
 
 	bool Exists( const Predicate< const ValueType& >& a_Predicate ) const
@@ -666,43 +703,34 @@ public:
 		return false;
 	}
 
-	auto Find( const Predicate< const ValueType& >& a_Predicate )
+	auto Find( const ValueType& a_Value ) const
 	{
-		for ( auto Iterator = CBegin(); Iterator < CEnd(); ++Iterator )
+		auto End = CEnd();
+
+		for ( auto Beg = CBegin(); Beg != End; ++Beg )
 		{
-			if ( a_Predicate.Invoke( *Iterator ) )
+			if ( *Beg == a_Value )
 			{
-				return CReference< ValueType >( *Iterator );
+				return Beg;
 			}
 		}
 
-		return CReference< ValueType >();
+		return End;
 	}
 
 	auto Find( const Predicate< const ValueType& >& a_Predicate ) const
 	{
-		for ( auto Iterator = CBegin(); Iterator < CEnd(); ++Iterator )
+		auto End = CEnd();
+
+		for ( auto Beg = CBegin(); Beg != End; ++Beg )
 		{
-			if ( a_Predicate.Invoke( *Iterator ) )
+			if ( a_Predicate.Invoke( *Beg ) )
 			{
-				return CReference< ValueType >( *Iterator );
+				return Beg;
 			}
 		}
 
-		return CReference< ValueType >();
-	}
-
-	auto Find( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate )
-	{
-		for ( ; a_Begin < a_End; ++a_Begin )
-		{
-			if ( a_Predicate.Invoke( *a_Begin ) )
-			{
-				return CReference< ValueType >( *a_Begin );
-			}
-		}
-
-		return CReference< ValueType >();
+		return End;
 	}
 
 	auto Find( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
@@ -711,45 +739,6 @@ public:
 		{
 			if ( a_Predicate.Invoke( *a_Begin ) )
 			{
-				return CReference< ValueType >( *a_Begin );
-			}
-		}
-
-		return CReference< ValueType >();
-	}
-
-	auto FindIterator( const Predicate< const ValueType& >& a_Predicate )
-	{
-		for ( auto Iterator = CBegin(); Iterator < CEnd(); ++Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return Iterator;
-			}
-		}
-
-		return CEnd();
-	}
-
-	auto FindIterator( const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		for ( auto Iterator = CBegin(); Iterator < CEnd(); ++Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return Iterator;
-			}
-		}
-
-		return CEnd();
-	}
-
-	auto FindIterator( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate )
-	{
-		for ( ; a_Begin < a_End; ++a_Begin )
-		{
-			if ( a_Predicate.Invoke( *a_Begin ) )
-			{
 				return a_Begin;
 			}
 		}
@@ -757,110 +746,23 @@ public:
 		return CEnd();
 	}
 
-	auto FindIterator( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		for ( ; a_Begin < a_End; ++a_Begin )
-		{
-			if ( a_Predicate.Invoke( *a_Begin ) )
-			{
-				return a_Begin;
-			}
-		}
-
-		return CEnd();
-	}
-
-	inline auto FindAll( const Predicate< const ValueType& >& a_Predicate )
-	{
-		Array< CReference< ValueType > > Result;
-
-		for ( const auto& Entry : Underlying() )
-		{
-			if ( a_Predicate.Invoke( Entry ) )
-			{
-				Result.EmplaceBack( Entry );
-			}
-		}
-
-		return Result;
-	}
-
-	inline auto FindAll( const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		Array< CReference< ValueType > > Result;
-
-		for ( const auto& Entry : Underlying() )
-		{
-			if ( a_Predicate.Invoke( Entry ) )
-			{
-				Result.EmplaceBack( Entry );
-			}
-		}
-
-		return Result;
-	}
-
-	inline auto FindAll( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate )
-	{
-		Array< CReference< ValueType > > Result;
-
-		for ( ; a_Begin < a_End; ++a_Begin )
-		{
-			if ( a_Predicate.Invoke( *a_Begin ) )
-			{
-				Result.EmplaceBack( *a_Begin );
-			}
-		}
-
-		return Result;
-	}
-
-	inline auto FindAll( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		Array< CReference< ValueType > > Result;
-
-		for ( ; a_Begin < a_End; ++a_Begin )
-		{
-			if ( a_Predicate.Invoke( *a_Begin ) )
-			{
-				Result.EmplaceBack( *a_Begin );
-			}
-		}
-
-		return Result;
-	}
-
-	inline auto FindIteratorAll( const Predicate< const ValueType& >& a_Predicate )
+	auto FindAll( const Predicate< const ValueType& >& a_Predicate ) const
 	{
 		Array< CIterator > Result;
+		auto End = CEnd();
 
-		for ( auto Iterator = CBegin(); Iterator < CEnd(); ++Iterator )
+		for ( auto Beg = CBegin(); Beg != End; ++Beg )
 		{
-			if ( a_Predicate.Invoke( *Iterator ) )
+			if ( a_Predicate.Invoke( Beg ) )
 			{
-				Result.EmplaceBack( Iterator );
+				Result.PushBack( Beg );
 			}
 		}
 
 		return Result;
 	}
 
-	inline auto FindIteratorAll( const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		Array< CIterator > Result;
-
-		for ( auto Iterator = CBegin(); Iterator < CEnd(); ++Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				Result.EmplaceBack( Iterator );
-			}
-		}
-
-		return Result;
-	}
-
-	inline auto FindIteratorAll( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate )
+	auto FindAll( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
 	{
 		Array< CIterator > Result;
 
@@ -868,133 +770,57 @@ public:
 		{
 			if ( a_Predicate.Invoke( *a_Begin ) )
 			{
-				Result.EmplaceBack( a_Begin );
+				Result.PushBack( a_Begin );
 			}
 		}
 
 		return Result;
 	}
 
-	inline auto FindIteratorAll( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
+	auto FindLast( const ValueType& a_Value ) const
 	{
-		Array< CIterator > Result;
+		auto End = CREnd();
 
-		for ( ; a_Begin < a_End; ++a_Begin )
+		for ( auto Beg = CRBegin(); Beg != End; ++Beg )
 		{
-			if ( a_Predicate.Invoke( *a_Begin ) )
+			if ( a_Predicate.Invoke( *Beg ) )
 			{
-				Result.EmplaceBack( a_Begin );
-			}
-		}
-
-		return Result;
-	}
-
-	inline auto FindLast( const Predicate< const ValueType& >& a_Predicate )
-	{
-		for ( auto Iterator = CRBegin(); Iterator < CREnd(); ++Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return CReference< ValueType >( *( Iterator.base() - 1 ) );
-			}
-		}
-
-		return CReference< ValueType >();
-	}
-
-	inline auto FindLast( const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		for ( auto Iterator = CRBegin(); Iterator < CREnd(); ++Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return CReference< ValueType >( *( Iterator.base() - 1 ) );
-			}
-		}
-
-		return CReference< ValueType >();
-	}
-
-	inline auto FindLast( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate )
-	{
-		for ( auto Iterator = a_End - 1; Iterator >= a_Begin(); --Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return CReference< ValueType >( *Iterator );
-			}
-		}
-
-		return CReference< ValueType >();
-	}
-
-	inline auto FindLast( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		for ( auto Iterator = a_End - 1; Iterator >= a_Begin(); --Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return CReference< ValueType >( *Iterator );
-			}
-		}
-
-		return CReference< ValueType >();
-	}
-
-	inline auto FindIteratorLast( const Predicate< const ValueType& >& a_Predicate )
-	{
-		for ( auto Iterator = CRBegin(); Iterator < CREnd(); ++Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return Iterator.base() - 1;
+				return Beg.base() - 1;
 			}
 		}
 
 		return CEnd();
 	}
 
-	inline auto FindIteratorLast( const Predicate< const ValueType& >& a_Predicate ) const
+	auto FindLast( const Predicate< const ValueType& >& a_Predicate ) const
 	{
-		for ( auto Iterator = CRBegin(); Iterator < CREnd(); ++Iterator )
+		auto End = CREnd();
+
+		for ( auto Beg = CRBegin(); Beg != End; ++Beg )
 		{
-			if ( a_Predicate.Invoke( *Iterator ) )
+			if ( a_Predicate.Invoke( *Beg ) )
 			{
-				return Iterator.base() - 1;
+				return Beg.base() - 1;
 			}
 		}
 
 		return CEnd();
 	}
 
-	inline auto FindIteratorLast( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate )
+	auto FindLast( const CIterator& a_Begin, const CIterator& a_End, const Predicate< const ValueType& >& a_Predicate )
 	{
-		for ( auto Iterator = a_End - 1; Iterator >= a_Begin(); --Iterator )
+		for ( auto Beg = a_End - 1; Beg >= a_Begin(); --Beg )
 		{
-			if ( a_Predicate.Invoke( *Iterator ) )
+			if ( a_Predicate.Invoke( *Beg ) )
 			{
-				return Iterator;
+				return Beg;
 			}
 		}
 
 		return CEnd();
 	}
 
-	inline auto FindIteratorLast( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		for ( auto Iterator = a_End - 1; Iterator >= a_Begin(); --Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return Iterator;
-			}
-		}
-
-		return CEnd();
-	}
-
-	inline void ForEach( const Action< const ValueType& >& a_Action ) const
+	void ForEach( const Action< const ValueType& >& a_Action ) const
 	{
 		for ( const auto& Entry : Underlying() )
 		{
@@ -1002,7 +828,7 @@ public:
 		}
 	}
 
-	inline void ForEach( CIterator a_Begin, CIterator a_End, const Action< const ValueType& >& a_Action ) const
+	void ForEach( CIterator a_Begin, CIterator a_End, const Action< const ValueType& >& a_Action ) const
 	{
 		for ( ; a_Begin < a_End; ++a_Begin )
 		{
@@ -1015,21 +841,63 @@ public:
 		return Base::front();
 	}
 
-	template < size_t LENGTH >
-	inline auto Intersection( const Array< ValueType, LENGTH >& a_Array ) const
+	int IndexOf( const ValueType& a_Value ) const
+	{
+		auto Beg = CBegin();
+
+		for ( int Index = 0; Index < Base::size(); ++Index, ++Beg )
+		{
+			if ( *Beg == a_Value )
+			{
+				return Index;
+			}
+		}
+
+		return -1;
+	}
+
+	int IndexOf( const CIterator& a_Where ) const
+	{
+		if ( a_Where == CEnd() )
+		{
+			return -1;
+		}
+
+		return a_Where - CBegin();
+	}
+
+	int IndexOf( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		auto Beg = CBegin();
+
+		for ( int Index = 0; Index < Base::size(); ++Index, ++Beg )
+		{
+			if ( a_Predicate( *Beg ) )
+			{
+				return Index;
+			}
+		}
+
+		return -1;
+	}
+
+	template < typename Container >
+	auto Intersection( Container& a_Container ) const
 	{
 		set< const ValueType*, LessPtr< ValueType > > SetA;
 		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< CReference< ValueType > > Result;
+		ReadOnlyRefArray Result;
 
 		for ( const auto& Entry : Underlying() )
 		{
 			SetA.insert( &Entry );
 		}
 
-		for ( const auto& Entry : a_Array.Underlying() )
+		auto End = ContainerTraits::End( a_Container );
+
+		for ( auto Beg = ContainerTraits::Begin( a_Container ); Beg != End; ++Beg )
 		{
-			SetB.insert( &Entry );
+			SetB.insert( &*Beg );
 		}
 
 		bool SetAIsLargest = SetA.size() > SetB.size();
@@ -1049,43 +917,43 @@ public:
 		return Result;
 	}
 
-	template < size_t LENGTH >
-	inline auto Intersection( const ReadOnlyArray< ValueType, LENGTH >& a_Array ) const
+	template < typename T, typename = enable_if_t< is_integral_v< T >, void > >
+	bool IsValidIndex( T a_Index ) const
 	{
-		set< const ValueType*, LessPtr< ValueType > > SetA;
-		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< CReference< ValueType > > Result;
-
-		for ( const auto& Entry : Underlying() )
+		if constexpr ( is_signed_v< T > )
 		{
-			SetA.insert( &Entry );
-		}
-
-		for ( const auto& Entry : a_Array.Underlying() )
-		{
-			SetB.insert( &Entry );
-		}
-
-		bool SetAIsLargest = SetA.size() > SetB.size();
-		decltype( SetA )& Smallest = !SetAIsLargest ? SetA : SetB;
-		decltype( SetA )& Largest = SetAIsLargest ? SetA : SetB;
-		auto Begin = !SetAIsLargest ? SetA.begin() : SetB.begin();
-		auto End = !SetAIsLargest ? SetA.end() : SetB.end();
-
-		for ( ; Begin != End; ++Begin )
-		{
-			if ( !Largest.insert( *Begin ).second )
+			if ( a_Index < 0 )
 			{
-				Result.emplace_back( **Begin );
+				return false;
 			}
 		}
 
-		return Result;
+		if ( a_Index >= Base::size() )
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 	inline auto MaxSize() const
 	{
 		return Base::max_size();
+	}
+
+	inline auto Partition( const CIterator& a_Begin, const CIterator& a_End ) const
+	{
+		return ReadOnlyRefArray< ValueType >( a_Begin, a_End );
+	}
+
+	inline void Reverse()
+	{
+		reverse( Base::begin(), Base::end() );
+	}
+
+	inline void Reverse( const CIterator& a_Begin, const CIterator& a_End )
+	{
+		reverse( *reinterpret_cast< typename Base::iterator* >( &a_Begin ), *reinterpret_cast< typename Base::iterator* >( &a_End ) );
 	}
 
 	inline auto Size() const
@@ -1105,65 +973,33 @@ public:
 		return *reinterpret_cast< const ReadOnlyArray< ValueType, LENGTH >* >( Base::data() + OFFSET );
 	}
 
+	inline void Swap( CIterator& a_IndexA, CIterator& a_IndexB )
+	{
+		swap( **reinterpret_cast< typename Base::iterator* >( &a_IndexA ), **reinterpret_cast< typename Base::iterator* >( &a_IndexB ) );
+	}
+
 	inline void Swap( ReadOnlyArray< ValueType, SIZE >& a_ReadOnlyArray )
 	{
 		Base::swap( *reinterpret_cast< Base* >( &a_ReadOnlyArray ) );
 	}
 
-	template < size_t LENGTH >
-	inline auto Symmetry( const Array< ValueType, LENGTH >& a_Array ) const
+	template < typename Container >
+	inline auto Symmetry( Container& a_Container ) const
 	{
 		set< const ValueType*, LessPtr< ValueType > > SetA;
 		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< CReference< ValueType > > Result;
+		ReadOnlyRefArray< ValueType > Result;
 
 		for ( const auto& Entry : Underlying() )
 		{
 			SetA.insert( &Entry );
 		}
 
-		for ( const auto& Entry : a_Array.Underlying() )
+		auto End = ContainerTraits::End( a_Container );
+
+		for ( auto Beg = ContainerTraits::Begin( a_Container ); Beg != End; ++Beg )
 		{
-			SetB.insert( &Entry );
-		}
-
-		auto IteratorA = SetA.begin();
-		auto IteratorB = SetB.begin();
-
-		while ( IteratorA != SetA.end() || IteratorB != SetB.end() )
-		{
-			while ( IteratorA != SetA.end() && ( IteratorB == SetB.end() || **( IteratorA ) < **IteratorB ) )
-			{
-				Result.emplace_back( **( IteratorA++ ) );
-			}
-
-			while ( IteratorB != SetB.end() && ( IteratorA == SetA.end() || **( IteratorB ) < **IteratorA ) )
-			{
-				Result.emplace_back( **( IteratorB++ ) );
-			}
-
-			if ( IteratorA != SetA.end() ) ++IteratorA;
-			if ( IteratorB != SetB.end() ) ++IteratorB;
-		}
-
-		return Result;
-	}
-
-	template < size_t LENGTH >
-	inline auto Symmetry( const ReadOnlyArray< ValueType, LENGTH >& a_Array ) const
-	{
-		set< const ValueType*, LessPtr< ValueType > > SetA;
-		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< CReference< ValueType > > Result;
-
-		for ( const auto& Entry : Underlying() )
-		{
-			SetA.insert( &Entry );
-		}
-
-		for ( const auto& Entry : a_Array.Underlying() )
-		{
-			SetB.insert( &Entry );
+			SetB.insert( &*Beg );
 		}
 
 		auto IteratorA = SetA.begin();
@@ -1201,7 +1037,7 @@ public:
 		return true;
 	}
 
-	inline bool TrueForAll( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
+	inline bool TrueForAll( CIterator a_Begin, const CIterator& a_End, const Predicate< const ValueType& >& a_Predicate ) const
 	{
 		for ( ; a_Begin < a_End; ++a_Begin )
 		{
@@ -1219,49 +1055,27 @@ public:
 		return *static_cast< const Base* >( this );
 	}
 
-	template < size_t LENGTH >
-	inline auto Union( const Array< ValueType, LENGTH >& a_Array ) const
+	template < typename Container >
+	inline auto Union( Container& a_Container ) const
 	{
 		set< const ValueType*, LessPtr< ValueType > > UnionSet;
-		Array< CReference< ValueType > > Result;
+		ReadOnlyRefArray< ValueType > Result;
 
 		for ( const auto& Entry : Underlying() )
 		{
 			UnionSet.insert( &Entry );
 		}
 
-		for ( const auto& Entry : a_Array.Underlying() )
+		auto End = ContainerTraits::End( a_Container );
+
+		for ( auto Beg = ContainerTraits::Begin( a_Container ); Beg != End; ++Beg )
 		{
-			UnionSet.insert( &Entry );
+			UnionSet.insert( &*Beg );
 		}
 
 		for ( const auto& Entry : UnionSet )
 		{
 			Result.EmplaceBack( *Entry );
-		}
-
-		return Result;
-	}
-
-	template < size_t LENGTH >
-	inline auto Union( const ReadOnlyArray< ValueType, LENGTH >& a_Array ) const
-	{
-		set< const ValueType*, LessPtr< ValueType > > UnionSet;
-		Array< CReference< ValueType > > Result;
-
-		for ( const auto& Entry : Underlying() )
-		{
-			UnionSet.insert( &Entry );
-		}
-
-		for ( const auto& Entry : a_Array.Underlying() )
-		{
-			UnionSet.insert( &Entry );
-		}
-
-		for ( const auto& Entry : UnionSet )
-		{
-			Result.emplace_back( *Entry );
 		}
 
 		return Result;
@@ -1275,9 +1089,19 @@ public:
 	#pragma endregion
 
 	#pragma region Iterator
-	inline CIterator CBegin() const
+	inline auto Begin() const
+	{
+		return Base::begin();
+	}
+
+	inline auto CBegin() const
 	{
 		return Base::cbegin();
+	}
+
+	inline auto RBegin() const
+	{
+		return Base::rbegin();
 	}
 
 	inline auto CRBegin() const
@@ -1285,9 +1109,19 @@ public:
 		return Base::crbegin();
 	}
 
+	inline auto End() const
+	{
+		return Base::end();
+	}
+
 	inline auto CEnd() const
 	{
 		return Base::cend();
+	}
+
+	inline auto REnd() const
+	{
+		return Base::rend();
 	}
 
 	inline auto CREnd() const
@@ -1325,35 +1159,43 @@ public:
 	Array() = default;
 
 	template < size_t LENGTH >
-	Array( const Array< ValueType, LENGTH >& a_Array )
+	Array( ValueType( *a_Array )[ LENGTH ] )
 	{
-		a_Array.CopyTo( *this );
-	}
+		size_t Size = LENGTH > SIZE ? SIZE : LENGTH;
+		size_t Index = 0;
 
-	Array( const InitializerList< ValueType >& a_InitializerList )
-	{
-		memcpy( Base::data(), a_InitializerList.begin(), ( a_InitializerList.size() < Base::size() ? a_InitializerList.size() : Base::size() ) * sizeof( ValueType ) );
-	}
-
-	Array( const InitializerList< ValueType >&& a_InitializerList )
-	{
-		memcpy( Base::data(), a_InitializerList.begin(), ( a_InitializerList.size() < Base::size() ? a_InitializerList.size() : Base::size() ) * sizeof( ValueType ) );
-	}
-
-	template < typename Iter, typename = ContainerTraits::EnableIfIterType< Iter, ValueType > >
-	Array( Iter a_Begin, Iter a_End )
-	{
-		Iterator Beg( Base::begin() );
-		Iterator End( Base::end() );
-
-		for ( ; a_Begin != a_End && Beg != End; ++a_Begin, ++Beg )
+		for ( auto Beg = Base::begin(); Index < Size; ++Index, ++Beg )
 		{
-			*Beg = *a_Begin;
+			*Beg = a_Array[ Index ];
 		}
 	}
 
-	template < typename Container, typename = ContainerTraits::EnableIfContainer< Container, ValueType > >
-	Array( const Container& a_Container )
+	Array( InitializerList< ValueType >& a_InitializerList )
+	{
+		size_t Size = a_InitializerList.size() < SIZE ? a_InitializerList.size() : SIZE;
+		auto BegA = Base::begin();
+		auto BegB = a_InitializerList.begin();
+
+		for ( size_t Index = 0; Index < Size; ++Index, ++BegA, ++BegB )
+		{
+			*BegA = *BegB;
+		}
+	}
+
+	Array( InitializerList< ValueType >&& a_InitializerList )
+	{
+		size_t Size = a_InitializerList.size() < SIZE ? a_InitializerList.size() : SIZE;
+		auto BegA = Base::begin();
+		auto BegB = a_InitializerList.begin();
+
+		for ( size_t Index = 0; Index < Size; ++Index, ++BegA, ++BegB )
+		{
+			*BegA = *BegB;
+		}
+	}
+
+	template < typename Container >
+	Array( Container& a_Container )
 	{
 		auto BegC = ContainerTraits::Begin( a_Container );
 		auto EndC = ContainerTraits::End( a_Container );
@@ -1366,9 +1208,46 @@ public:
 		}
 	}
 
-	inline Enumerable< ValueType > AsEnumerable()
+	template < typename Iter >
+	Array( Iter a_Begin, const Iter& a_End )
+	{
+		Iterator Beg( Base::begin() );
+		Iterator End( Base::end() );
+
+		for ( ; a_Begin != a_End && Beg != End; ++a_Begin, ++Beg )
+		{
+			*Beg = *a_Begin;
+		}
+	}
+
+	inline auto AsEnumerable()
 	{
 		return Enumerable< ValueType >( Base::begin(), Base::end(), Base::size() );
+	}
+
+	inline auto AsEnumerable() const
+	{
+		return ReadOnlyEnumerable< ValueType >( Base::begin(), Base::end(), Base::size() );
+	}
+
+	inline auto AsReadOnlyEnumerable() const
+	{
+		return ReadOnlyEnumerable< ValueType >( Base::begin(), Base::end(), Base::size() );
+	}
+
+	inline auto AsRefArray()
+	{
+		return RefArray< ValueType >( *this );
+	}
+
+	inline auto AsRefArray() const
+	{
+		return ReadOnlyRefArray< ValueType >( *this );
+	}
+
+	inline auto AsReadOnlyRefArray() const
+	{
+		return ReadOnlyRefArray< ValueType >( *this );
 	}
 
 	inline auto& AsReadOnly()
@@ -1381,12 +1260,25 @@ public:
 		return *reinterpret_cast< const ReadOnlyArray< ValueType, SIZE >* >( this );
 	}
 
+	inline void Assign( ValueType& a_Value )
+	{
+		Base::assign( a_Value );
+	}
+
 	inline void Assign( const ValueType& a_Value )
 	{
 		Base::assign( a_Value );
 	}
 
-	inline void Assign( Iterator a_Begin, Iterator a_End, const ValueType& a_Value )
+	inline void Assign( Iterator a_Begin, const Iterator& a_End, ValueType& a_Value )
+	{
+		while ( a_Begin < a_End )
+		{
+			*a_Begin++ = a_Value;
+		}
+	}
+
+	inline void Assign( Iterator a_Begin, const Iterator& a_End, const ValueType& a_Value )
 	{
 		while ( a_Begin < a_End )
 		{
@@ -1414,48 +1306,79 @@ public:
 		return Base::back();
 	}
 
-	template < size_t LENGTH >
-	inline auto Combine( Array< ValueType, LENGTH >& a_Array )
+	inline auto Capacity() const
 	{
-		Array< Reference< ValueType > > Result;
-		Result.reserve( Base::size() + a_Array.size() );
+		return Base::size();
+	}
 
-		for ( auto Iterator = Begin(); Iterator != End(); ++Iterator )
+	template < typename Container >
+	inline auto Combine( Container& a_Container )
+	{
+		RefArray< ValueType > Result;
+		Result.reserve( Base::size() + ContainerTraits::Size( a_Container ) );
+		auto EndA = End();
+
+		for ( auto Beg = Begin(); Beg != EndA; ++Beg )
 		{
-			Result.emplace_back( *Iterator );
+			Result.emplace_back( *Beg );
 		}
 
-		for ( auto Iterator = a_Array.Begin(); Iterator != a_Array.End(); ++Iterator )
+		auto EndB = ContainerTraits::End( a_Container );
+
+		for ( auto Beg = ContainerTraits::Begin( a_Container ); Beg != EndB; ++Beg )
 		{
-			Result.emplace_back( *Iterator );
+			Result.emplace_back( *Beg );
 		}
 
 		return Result;
 	}
 
-	template < size_t LENGTH >
-	inline auto Combine( const Array< ValueType, LENGTH >& a_Array ) const
+	template < typename Container >
+	inline auto Combine( Container& a_Container ) const
 	{
-		Array< CReference< ValueType > > Result;
-		Result.reserve( Base::size() + a_Array.size() );
+		ReadOnlyRefArray< ValueType > Result;
+		Result.reserve( Base::size() + ContainerTraits::Size( a_Container ) );
+		auto EndA = End();
 
-		for ( auto Iterator = Begin(); Iterator != End(); ++Iterator )
+		for ( auto Beg = Begin(); Beg != EndA; ++Beg )
 		{
-			Result.emplace_back( *Iterator );
+			Result.emplace_back( *Beg );
 		}
 
-		for ( auto Iterator = a_Array.Begin(); Iterator != a_Array.End(); ++Iterator )
+		auto EndB = ContainerTraits::End( a_Container );
+
+		for ( auto Beg = ContainerTraits::Begin( a_Container ); Beg != EndB; ++Beg )
 		{
-			Result.emplace_back( *Iterator );
+			Result.emplace_back( *Beg );
 		}
 
 		return Result;
 	}
 
-	template < size_t LENGTH >
-	inline void CopyTo( Array< ValueType, LENGTH >& a_Array ) const
+	template < typename Container >
+	inline void CopyTo( Container& a_Container )
 	{
-		memcpy( a_Array.data(), Base::data(), ( Base::size() < a_Array.size() ? Base::size() : a_Array.size() ) * sizeof( ValueType ) );
+		auto BegA = Begin();
+		auto BegB = ContainerTraits::Begin( a_Container );
+		size_t Size = ContainerTraits::Size( a_Container ) < Base::size() ? ContainerTraits::Size( a_Container ) : Base::size();
+
+		for ( ; Size > 0; --Size, ++BegA, ++BegB )
+		{
+			*BegB = *BegA;
+		}
+	}
+
+	template < typename Container >
+	inline void CopyTo( Container& a_Container ) const
+	{
+		auto BegA = Begin();
+		auto BegB = ContainerTraits::Begin( a_Container );
+		size_t Size = ContainerTraits::Size( a_Container ) < Base::size() ? ContainerTraits::Size( a_Container ) : Base::size();
+
+		for ( ; Size > 0; --Size, ++BegA, ++BegB )
+		{
+			*BegB = *BegA;
+		}
 	}
 
 	inline auto Data()
@@ -1468,21 +1391,23 @@ public:
 		return Base::data();
 	}
 
-	template < size_t LENGTH >
-	inline auto Difference( Array< ValueType, LENGTH >& a_Array )
+	template < typename Container >
+	inline auto Difference( Container& a_Container )
 	{
 		set< ValueType*, LessPtr< ValueType > > SetA;
 		set< ValueType*, LessPtr< ValueType > > SetB;
-		Array< Reference< ValueType > > Result;
+		RefArray< ValueType > Result;
 
 		for ( auto& Entry : Underlying() )
 		{
 			SetA.insert( &Entry );
 		}
 
-		for ( auto& Entry : a_Array.Underlying() )
+		auto End = ContainerTraits::End( a_Container );
+
+		for ( auto Beg = ContainerTraits::Begin( a_Container ); Beg != End; ++Beg )
 		{
-			SetB.insert( &Entry );
+			SetB.insert( &*Beg );
 		}
 
 		for ( auto Iterator = SetA.begin(); Iterator != SetA.end(); ++Iterator )
@@ -1499,18 +1424,20 @@ public:
 	template < size_t LENGTH >
 	inline auto Difference( const Array< ValueType, LENGTH >& a_Array ) const
 	{
-		set< const ValueType*, LessPtr< ValueType > > SetA;
-		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< CReference< ValueType > > Result;
+		set< ValueType*, LessPtr< ValueType > > SetA;
+		set< ValueType*, LessPtr< ValueType > > SetB;
+		ReadOnlyRefArray< ValueType > Result;
 
-		for ( const auto& Entry : Underlying() )
+		for ( auto& Entry : Underlying() )
 		{
 			SetA.insert( &Entry );
 		}
 
-		for ( const auto& Entry : a_Array.Underlying() )
+		auto End = ContainerTraits::End( a_Container );
+
+		for ( auto Beg = ContainerTraits::Begin( a_Container ); Beg != End; ++Beg )
 		{
-			SetB.insert( &Entry );
+			SetB.insert( &*Beg );
 		}
 
 		for ( auto Iterator = SetA.begin(); Iterator != SetA.end(); ++Iterator )
@@ -1525,30 +1452,36 @@ public:
 	}
 
 	template < typename... T >
-	inline auto& EmplaceAt( Iterator a_Where, T&&... a_Args )
+	inline auto& EmplaceAt( const Iterator& a_Where, T&&... a_Args )
 	{
 		return *( new ( &*a_Where ) ValueType( forward< T >( a_Args )... ) );
 	}
 
+	template < typename... T >
+	inline auto& EmplaceZeroedAt( const Iterator& a_Where, T&&... a_Args )
+	{
+		return *( new ( &*a_Where ) ValueType( forward< T >( a_Args ) ) );
+	}
+
 	inline auto Empty() const
 	{
-		return Base::empty();
+		return false;
 	}
 
-	template < size_t LENGTH >
-	inline bool Equals( const ReadOnlyArray< ValueType, LENGTH >& a_ReadOnlyArray ) const
+	template < typename Container >
+	inline bool Equals( Container& a_Container ) const
 	{
-		if constexpr ( Base::size() != a_ReadOnlyArray.size() )
+		if constexpr ( Base::size() != ContainerTraits::Size( a_Container ) )
 		{
 			return false;
 		}
 
-		const char* Array1 = reinterpret_cast< const char* >( Base::data() );
-		const char* Array2 = reinterpret_cast< const char* >( a_ReadOnlyArray.data() );
+		auto BegA = Base::begin();
+		auto BegB = ContainerTraits::Begin( a_Container );
 
-		for ( size_t i = 0; i < Base::size() * sizeof( ValueType ); ++i )
+		for ( size_t Size = Base::size(); Size > 0; --Size, ++BegA, ++BegB )
 		{
-			if ( Array1[ i ] != Array2[ i ] )
+			if ( *BegA != *BegB )
 			{
 				return false;
 			}
@@ -1557,26 +1490,17 @@ public:
 		return true;
 	}
 
-	template < size_t LENGTH >
-	inline bool Equals( const Array< ValueType, LENGTH >& a_Array ) const
+	bool Exists( const ValueType& a_Value ) const
 	{
-		if constexpr ( Base::size() != a_Array.size() )
+		for ( const auto& Entry : Underlying() )
 		{
-			return false;
-		}
-
-		const char* Array1 = reinterpret_cast< const char* >( Base::data() );
-		const char* Array2 = reinterpret_cast< const char* >( a_Array.data() );
-
-		for ( size_t i = 0; i < Base::size() * sizeof( ValueType ); ++i )
-		{
-			if ( Array1[ i ] != Array2[ i ] )
+			if ( Entry == a_Value )
 			{
-				return false;
+				return true;
 			}
 		}
 
-		return true;
+		return false;
 	}
 
 	bool Exists( const Predicate< const ValueType& >& a_Predicate ) const
@@ -1592,85 +1516,67 @@ public:
 		return false;
 	}
 
-	auto Find( const Predicate< const ValueType& >& a_Predicate )
+	auto Find( const ValueType& a_Value )
 	{
-		for ( auto Iterator = Begin(); Iterator < End(); ++Iterator )
+		auto End = Base::end();
+
+		for ( auto Beg = Base::begin(); Beg != End; ++Beg )
 		{
-			if ( a_Predicate.Invoke( *Iterator ) )
+			if ( *Beg == a_Value )
 			{
-				return Reference< ValueType >( *Iterator );
+				return Beg;
 			}
 		}
 
-		return Reference< ValueType >();
+		return End;
+	}
+
+	auto Find( const ValueType& a_Value ) const
+	{
+		auto End = Base::end();
+
+		for ( auto Beg = Base::begin(); Beg != End; ++Beg )
+		{
+			if ( *Beg == a_Value )
+			{
+				return Beg;
+			}
+		}
+
+		return End;
+	}
+
+	auto Find( const Predicate< const ValueType& >& a_Predicate )
+	{
+		auto End = Base::end();
+
+		for ( auto Beg = Base::begin(); Beg != End; ++Beg )
+		{
+			if ( a_Predicate.Invoke( *Beg ) )
+			{
+				return Beg;
+			}
+		}
+
+		return End;
 	}
 
 	auto Find( const Predicate< const ValueType& >& a_Predicate ) const
 	{
-		for ( auto Iterator = CBegin(); Iterator < CEnd(); ++Iterator )
+		auto End = Base::end();
+
+		for ( auto Beg = Base::begin(); Beg != End; ++Beg )
 		{
-			if ( a_Predicate.Invoke( *Iterator ) )
+			if ( a_Predicate.Invoke( *Beg ) )
 			{
-				return CReference< ValueType >( *Iterator );
+				return Beg;
 			}
 		}
 
-		return CReference< ValueType >();
+		return End;
 	}
 
-	auto Find( Iterator a_Begin, Iterator a_End, const Predicate< const ValueType& >& a_Predicate )
-	{
-		for ( ; a_Begin < a_End; ++a_Begin )
-		{
-			if ( a_Predicate.Invoke( *a_Begin ) )
-			{
-				return Reference< ValueType >( *a_Begin );
-			}
-		}
-
-		return Reference< ValueType >();
-	}
-
-	auto Find( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		for ( ; a_Begin < a_End; ++a_Begin )
-		{
-			if ( a_Predicate.Invoke( *a_Begin ) )
-			{
-				return CReference< ValueType >( *a_Begin );
-			}
-		}
-
-		return CReference< ValueType >();
-	}
-
-	auto FindIterator( const Predicate< const ValueType& >& a_Predicate )
-	{
-		for ( auto Iterator = Begin(); Iterator < End(); ++Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return Iterator;
-			}
-		}
-
-		return End();
-	}
-
-	auto FindIterator( const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		for ( auto Iterator = CBegin(); Iterator < CEnd(); ++Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return Iterator;
-			}
-		}
-
-		return CEnd();
-	}
-
-	auto FindIterator( Iterator a_Begin, Iterator a_End, const Predicate< const ValueType& >& a_Predicate )
+	auto Find( Iterator a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate )
 	{
 		for ( ; a_Begin < a_End; ++a_Begin )
 		{
@@ -1680,10 +1586,10 @@ public:
 			}
 		}
 
-		return End();
+		return Base::end();
 	}
 
-	auto FindIterator( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
+	auto Find( CIterator a_Begin, const CIterator& a_End, const Predicate< const ValueType& >& a_Predicate ) const
 	{
 		for ( ; a_Begin < a_End; ++a_Begin )
 		{
@@ -1693,18 +1599,19 @@ public:
 			}
 		}
 
-		return CEnd();
+		return Base::end();
 	}
 
 	inline auto FindAll( const Predicate< const ValueType& >& a_Predicate )
 	{
-		Array< Reference< ValueType > > Result;
+		Array< Iterator > Result;
+		auto End = Base::end();
 
-		for ( const auto& Entry : Underlying() )
+		for ( auto Beg = Base::begin(); Beg != End; ++Beg )
 		{
-			if ( a_Predicate.Invoke( Entry ) )
+			if ( a_Predicate.Invoke( *Beg ) )
 			{
-				Result.EmplaceBack( Entry );
+				Result.push_back( Beg );
 			}
 		}
 
@@ -1713,103 +1620,44 @@ public:
 
 	inline auto FindAll( const Predicate< const ValueType& >& a_Predicate ) const
 	{
-		Array< CReference< ValueType > > Result;
+		Array< CIterator > Result;
+		auto End = Base::end();
 
-		for ( const auto& Entry : Underlying() )
+		for ( auto Beg = Base::begin(); Beg != End; ++Beg )
 		{
-			if ( a_Predicate.Invoke( Entry ) )
+			if ( a_Predicate.Invoke( *Beg ) )
 			{
-				Result.EmplaceBack( Entry );
+				Result.push_back( Beg );
 			}
 		}
 
 		return Result;
 	}
 
-	inline auto FindAll( Iterator a_Begin, Iterator a_End, const Predicate< const ValueType& >& a_Predicate )
-	{
-		Array< Reference< ValueType > > Result;
-
-		for ( ; a_Begin < a_End; ++a_Begin )
-		{
-			if ( a_Predicate.Invoke( *a_Begin ) )
-			{
-				Result.EmplaceBack( *a_Begin );
-			}
-		}
-
-		return Result;
-	}
-
-	inline auto FindAll( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		Array< CReference< ValueType > > Result;
-
-		for ( ; a_Begin < a_End; ++a_Begin )
-		{
-			if ( a_Predicate.Invoke( *a_Begin ) )
-			{
-				Result.EmplaceBack( *a_Begin );
-			}
-		}
-
-		return Result;
-	}
-
-	inline auto FindIteratorAll( const Predicate< const ValueType& >& a_Predicate )
+	inline auto FindAll( Iterator a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate )
 	{
 		Array< Iterator > Result;
 
-		for ( auto Iterator = Begin(); Iterator < End(); ++Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				Result.EmplaceBack( Iterator );
-			}
-		}
-
-		return Result;
-	}
-
-	inline auto FindIteratorAll( const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		Array< CIterator > Result;
-
-		for ( auto Iterator = CBegin(); Iterator < CEnd(); ++Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				Result.EmplaceBack( Iterator );
-			}
-		}
-
-		return Result;
-	}
-
-	inline auto FindIteratorAll( Iterator a_Begin, Iterator a_End, const Predicate< const ValueType& >& a_Predicate )
-	{
-		Array< Iterator > Result;
-
-		for ( ; a_Begin < a_End; ++a_Begin )
+		for ( ; a_Begin != a_End; ++a_Begin )
 		{
 			if ( a_Predicate.Invoke( *a_Begin ) )
 			{
-				Result.EmplaceBack( a_Begin );
+				Result.push_back( a_Begin );
 			}
 		}
 
 		return Result;
 	}
 
-	inline auto FindIteratorAll( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
+	inline auto FindAll( CIterator a_Begin, const CIterator& a_End, const Predicate< const ValueType& >& a_Predicate ) const
 	{
 		Array< CIterator > Result;
 
-		for ( ; a_Begin < a_End; ++a_Begin )
+		for ( ; a_Begin != a_End; ++a_Begin )
 		{
 			if ( a_Predicate.Invoke( *a_Begin ) )
 			{
-				Result.EmplaceBack( a_Begin );
+				Result.push_back( a_Begin );
 			}
 		}
 
@@ -1818,106 +1666,58 @@ public:
 
 	inline auto FindLast( const Predicate< const ValueType& >& a_Predicate )
 	{
-		for ( auto Iterator = RBegin(); Iterator < REnd(); ++Iterator )
+		auto End = Base::rend();
+
+		for ( auto Beg = Base::rbeg(); Beg < End; ++Beg )
 		{
-			if ( a_Predicate.Invoke( *Iterator ) )
+			if ( a_Predicate.Invoke( *Beg ) )
 			{
-				return Reference< ValueType >( *( Iterator.base() - 1 ) );
+				return Beg.base() - 1;
 			}
 		}
 
-		return Reference< ValueType >();
+		return End;
 	}
 
 	inline auto FindLast( const Predicate< const ValueType& >& a_Predicate ) const
 	{
-		for ( auto Iterator = CRBegin(); Iterator < CREnd(); ++Iterator )
+		auto End = Base::rend();
+
+		for ( auto Beg = Base::rbeg(); Beg < End; ++Beg )
 		{
-			if ( a_Predicate.Invoke( *Iterator ) )
+			if ( a_Predicate.Invoke( *Beg ) )
 			{
-				return CReference< ValueType >( *( Iterator.base() - 1 ) );
+				return Beg.base() - 1;
 			}
 		}
 
-		return CReference< ValueType >();
+		return End;
 	}
 
-	inline auto FindLast( Iterator a_Begin, Iterator a_End, const Predicate< const ValueType& >& a_Predicate )
+	inline auto FindLast( const Iterator& a_Begin, const Iterator& a_End, const Predicate< const ValueType& >& a_Predicate )
 	{
-		for ( auto Iterator = a_End - 1; Iterator >= a_Begin(); --Iterator )
+		for ( auto Beg = a_End - 1; Beg >= a_Begin; --Beg )
 		{
-			if ( a_Predicate.Invoke( *Iterator ) )
+			if ( a_Predicate.Invoke( *Beg ) )
 			{
-				return Reference< ValueType >( *Iterator );
+				return Beg;
 			}
 		}
 
-		return Reference< ValueType >();
+		return Base::end();
 	}
 
-	inline auto FindLast( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
+	inline auto FindLast( const CIterator& a_Begin, const CIterator& a_End, const Predicate< const ValueType& >& a_Predicate ) const
 	{
-		for ( auto Iterator = a_End - 1; Iterator >= a_Begin(); --Iterator )
+		for ( auto Beg = a_End - 1; Beg >= a_Begin; --Beg )
 		{
-			if ( a_Predicate.Invoke( *Iterator ) )
+			if ( a_Predicate.Invoke( *Beg ) )
 			{
-				return CReference< ValueType >( *Iterator );
+				return Beg;
 			}
 		}
 
-		return CReference< ValueType >();
-	}
-
-	inline auto FindIteratorLast( const Predicate< const ValueType& >& a_Predicate )
-	{
-		for ( auto Iterator = RBegin(); Iterator < REnd(); ++Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return Iterator.base() - 1;
-			}
-		}
-
-		return End();
-	}
-
-	inline auto FindIteratorLast( const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		for ( auto Iterator = CRBegin(); Iterator < CREnd(); ++Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return Iterator.base() - 1;
-			}
-		}
-
-		return CEnd();
-	}
-
-	inline auto FindIteratorLast( Iterator a_Begin, Iterator a_End, const Predicate< const ValueType& >& a_Predicate )
-	{
-		for ( auto Iterator = a_End - 1; Iterator >= a_Begin(); --Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return Iterator;
-			}
-		}
-
-		return End();
-	}
-
-	inline auto FindIteratorLast( CIterator a_Begin, CIterator a_End, const Predicate< const ValueType& >& a_Predicate ) const
-	{
-		for ( auto Iterator = a_End - 1; Iterator >= a_Begin(); --Iterator )
-		{
-			if ( a_Predicate.Invoke( *Iterator ) )
-			{
-				return Iterator;
-			}
-		}
-
-		return CEnd();
+		return Base::end();
 	}
 
 	inline void ForEach( const Action< ValueType& >& a_Action )
@@ -1936,19 +1736,19 @@ public:
 		}
 	}
 
-	inline void ForEach( Iterator a_Begin, Iterator a_End, const Action< ValueType& >& a_Action )
+	inline void ForEach( Iterator a_Begin, const Iterator& a_End, const Action< ValueType& >& a_Action )
 	{
 		for ( ; a_Begin < a_End; ++a_Begin )
 		{
-			a_Action.Invoke( *Iterator );
+			a_Action.Invoke( *a_Begin );
 		}
 	}
 
-	inline void ForEach( CIterator a_Begin, CIterator a_End, const Action< const ValueType& >& a_Action ) const
+	inline void ForEach( CIterator a_Begin, const CIterator& a_End, const Action< const ValueType& >& a_Action ) const
 	{
 		for ( ; a_Begin < a_End; ++a_Begin )
 		{
-			a_Action.Invoke( *Iterator );
+			a_Action.Invoke( *a_Begin );
 		}
 	}
 
@@ -1962,21 +1762,73 @@ public:
 		return Base::front();
 	}
 
-	template < size_t LENGTH >
-	inline auto Intersection( Array< ValueType, LENGTH >& a_Array )
+	int IndexOf( const ValueType& a_Value ) const
+	{
+		auto Beg = CBegin();
+
+		for ( int Index = 0; Index < Base::size(); ++Index, ++Beg )
+		{
+			if ( *Beg == a_Value )
+			{
+				return Index;
+			}
+		}
+
+		return -1;
+	}
+
+	int IndexOf( const CIterator& a_Where ) const
+	{
+		if ( a_Where == CEnd() )
+		{
+			return -1;
+		}
+
+		return a_Where - CBegin();
+	}
+
+	int IndexOf( const Predicate< const ValueType& >& a_Predicate ) const
+	{
+		auto Beg = CBegin();
+
+		for ( int Index = 0; Index < Base::size(); ++Index, ++Beg )
+		{
+			if ( a_Predicate( *Beg ) )
+			{
+				return Index;
+			}
+		}
+
+		return -1;
+	}
+
+	inline void InsertAt( Iterator& a_Where, ValueType& a_Value )
+	{
+		*a_Where = a_Value;
+	}
+
+	inline void InsertAt( Iterator& a_Where, const ValueType& a_Value )
+	{
+		*a_Where = a_Value;
+	}
+
+	template < typename Container >
+	inline auto Intersection( Container& a_Container )
 	{
 		set< ValueType*, LessPtr< ValueType > > SetA;
 		set< ValueType*, LessPtr< ValueType > > SetB;
-		Array< Reference< ValueType > > Result;
+		RefArray< ValueType > Result;
 
 		for ( auto& Entry : Underlying() )
 		{
 			SetA.insert( &Entry );
 		}
 
-		for ( auto& Entry : a_Array.Underlying() )
+		auto End = ContainerTraits::End( a_Container );
+
+		for ( auto Beg = ContainerTraits::Begin( a_Container ); Beg != End; ++Beg )
 		{
-			SetB.insert( &Entry );
+			SetB.insert( &*Beg );
 		}
 
 		bool SetAIsLargest = SetA.size() > SetB.size();
@@ -1996,21 +1848,23 @@ public:
 		return Result;
 	}
 
-	template < size_t LENGTH >
-	inline auto Intersection( const Array< ValueType, LENGTH >& a_Array ) const
+	template < typename Container >
+	inline auto Intersection( Container& a_Container ) const
 	{
-		set< const ValueType*, LessPtr< ValueType > > SetA;
-		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< CReference< ValueType > > Result;
+		set< ValueType*, LessPtr< ValueType > > SetA;
+		set< ValueType*, LessPtr< ValueType > > SetB;
+		RefArray< ValueType > Result;
 
-		for ( const auto& Entry : Underlying() )
+		for ( auto& Entry : Underlying() )
 		{
 			SetA.insert( &Entry );
 		}
 
-		for ( const auto& Entry : a_Array.Underlying() )
+		auto End = ContainerTraits::End( a_Container );
+
+		for ( auto Beg = ContainerTraits::Begin( a_Container ); Beg != End; ++Beg )
 		{
-			SetB.insert( &Entry );
+			SetB.insert( &*Beg );
 		}
 
 		bool SetAIsLargest = SetA.size() > SetB.size();
@@ -2028,6 +1882,25 @@ public:
 		}
 
 		return Result;
+	}
+
+	template < typename T, typename = enable_if_t< is_integral_v< T >, void > >
+	bool IsValidIndex( T a_Index ) const
+	{
+		if constexpr ( is_signed_v< T > )
+		{
+			if ( a_Index < 0 )
+			{
+				return false;
+			}
+		}
+
+		if ( a_Index >= Base::size() )
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 	inline constexpr auto MaxSize() const
@@ -2047,7 +1920,12 @@ public:
 
 	inline auto Partition( size_t a_Offset, size_t a_Length )
 	{
-		return Array< ValueType >( Begin() + a_Offset, Begin() + a_Offset + a_Length );
+		return RefArray< ValueType >( Begin() + a_Offset, Begin() + a_Offset + a_Length );
+	}
+
+	inline auto Partition( size_t a_Offset, size_t a_Length ) const
+	{
+		return ReadOnlyRefArray< ValueType >( Begin() + a_Offset, Begin() + a_Offset + a_Length );
 	}
 
 	inline void Reverse()
@@ -2055,9 +1933,9 @@ public:
 		reverse( Base::begin(), Base::end() );
 	}
 
-	inline void Reverse( Iterator a_Begin, Iterator a_End )
+	inline void Reverse( const CIterator& a_Begin, const CIterator& a_End )
 	{
-		reverse( a_Begin, a_End );
+		reverse( *reinterpret_cast< typename Base::iterator* >( &a_Begin ), *reinterpret_cast< typename Base::iterator* >( &a_End ) );
 	}
 
 	inline constexpr auto Size() const
@@ -2082,9 +1960,12 @@ public:
 	}
 
 	template < bool ASCENDING = true >
-	inline void Sort( Iterator a_Begin, Iterator a_End )
+	inline void Sort( const CIterator& a_Begin, const CIterator& a_End )
 	{
-		sort( a_Begin, a_End, []( const ValueType& Left, const ValueType& Right )
+		auto Beg = *reinterpret_cast< typename Base::iterator* >( &a_Begin );
+		auto End = *reinterpret_cast< typename Base::iterator* >( &a_End );
+
+		sort( Beg, End, []( const ValueType& Left, const ValueType& Right )
 			  {
 				  if constexpr ( ASCENDING )
 				  {
@@ -2102,9 +1983,11 @@ public:
 		sort( Base::begin(), Base::end(), a_Comparer );
 	}
 
-	inline void Sort( Iterator a_Begin, Iterator a_End, const Predicate< const ValueType&, const ValueType& >& a_Comparer )
+	inline void Sort( const CIterator& a_Begin, const CIterator& a_End, const Predicate< const ValueType&, const ValueType& >& a_Comparer )
 	{
-		sort( a_Begin, a_End, a_Comparer );
+		auto Beg = *reinterpret_cast< typename Base::iterator* >( &a_Begin );
+		auto End = *reinterpret_cast< typename Base::iterator* >( &a_End );
+		sort( Beg, End, a_Comparer );
 	}
 
 	template < size_t OFFSET, size_t LENGTH = ( SIZE > OFFSET ? SIZE - OFFSET : 0 ) >
@@ -2118,27 +2001,34 @@ public:
 	{
 		return *reinterpret_cast< const Array< ValueType, LENGTH >* >( Base::data() + OFFSET );
 	}
+
+	inline void Swap( CIterator& a_IndexA, CIterator& a_IndexB )
+	{
+		swap( *reinterpret_cast< typename Base::iterator* >( &a_IndexA ), *reinterpret_cast< typename Base::iterator* >( &a_IndexB ) );
+	}
 	
 	inline void Swap( Array< ValueType, SIZE >& a_Array )
 	{
 		return Base::swap( a_Array.Underlying() );
 	}
 
-	template < size_t LENGTH >
-	inline auto Symmetry( Array< ValueType, LENGTH >& a_Array )
+	template < typename Container >
+	inline auto Symmetry( Container& a_Container )
 	{
 		set< ValueType*, LessPtr< ValueType > > SetA;
 		set< ValueType*, LessPtr< ValueType > > SetB;
-		Array< Reference< ValueType > > Result;
+		RefArray< ValueType > Result;
 
 		for ( auto& Entry : Underlying() )
 		{
 			SetA.insert( &Entry );
 		}
 
-		for ( auto& Entry : a_Array.Underlying() )
+		auto End = ContainerTraits::End( a_Container );
+
+		for ( auto Beg = ContainerTraits::Begin( a_Container ); Beg != End; ++Beg )
 		{
-			SetB.insert( &Entry );
+			SetB.insert( &*Beg );
 		}
 
 		auto IteratorA = SetA.begin();
@@ -2163,21 +2053,23 @@ public:
 		return Result;
 	}
 
-	template < size_t LENGTH >
-	inline auto Symmetry( const Array< ValueType, LENGTH >& a_Array ) const
+	template < typename Container >
+	inline auto Symmetry( Container& a_Container ) const
 	{
-		set< const ValueType*, LessPtr< ValueType > > SetA;
-		set< const ValueType*, LessPtr< ValueType > > SetB;
-		Array< CReference< ValueType > > Result;
+		set< ValueType*, LessPtr< ValueType > > SetA;
+		set< ValueType*, LessPtr< ValueType > > SetB;
+		ReadOnlyRefArray< ValueType > Result;
 
-		for ( const auto& Entry : Underlying() )
+		for ( auto& Entry : Underlying() )
 		{
 			SetA.insert( &Entry );
 		}
 
-		for ( const auto& Entry : a_Array.Underlying() )
+		auto End = ContainerTraits::End( a_Container );
+
+		for ( auto Beg = ContainerTraits::Begin( a_Container ); Beg != End; ++Beg )
 		{
-			SetB.insert( &Entry );
+			SetB.insert( &*Beg );
 		}
 
 		auto IteratorA = SetA.begin();
@@ -2187,12 +2079,12 @@ public:
 		{
 			while ( IteratorA != SetA.end() && ( IteratorB == SetB.end() || **( IteratorA ) < **IteratorB ) )
 			{
-				Result.emplace_back( **( IteratorA++ ) );
+				Result.push_back( **( IteratorA++ ) );
 			}
 
 			while ( IteratorB != SetB.end() && ( IteratorA == SetA.end() || **( IteratorB ) < **IteratorA ) )
 			{
-				Result.emplace_back( **( IteratorB++ ) );
+				Result.push_back( **( IteratorB++ ) );
 			}
 
 			if ( IteratorA != SetA.end() ) ++IteratorA;

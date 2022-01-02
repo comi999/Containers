@@ -575,8 +575,6 @@ struct Test
     T Value[1];
 };
 
-
-
 int main()
 {
 

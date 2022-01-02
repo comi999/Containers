@@ -27,18 +27,18 @@ namespace ContainerTraits
         {
         private:
             template < typename U > 
-            static size_t test( decltype( declval< U >().size() )*, const Container& a_Container )
+            static constexpr size_t test( decltype( declval< U >().size() )*, const Container& a_Container )
             {
                 return a_Container.size();
             }
 
             template < typename U >
-            static size_t test( decltype( declval< U >().Size() )*, const Container& a_Container )
+            static constexpr size_t test( decltype( declval< U >().Size() )*, const Container& a_Container )
             {
                 return a_Container.Size();
             }
         public:
-            static size_t GetSize( const Container& a_Container )
+            static constexpr size_t GetSize( const Container& a_Container )
             {
                 return test< Container >( 0, a_Container );
             }
@@ -355,7 +355,7 @@ namespace ContainerTraits
 
     // This will call the given types "Size" or "size" function.
     template < typename Container, typename = enable_if_t< IsSizeable< Container >, void > >
-    static size_t Size( const Container& a_Container )
+    static constexpr size_t Size( const Container& a_Container )
     {
         return GetSizeImpl< Container >::GetSize( a_Container );
     }

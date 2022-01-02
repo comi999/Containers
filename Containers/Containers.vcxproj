@@ -142,10 +142,12 @@
   <ItemGroup>
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="PartitionList.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Array.hpp" />
     <ClInclude Include="ContainerTraits.hpp" />
+    <ClInclude Include="ContainerUtils.hpp" />
     <ClInclude Include="Delegate.hpp" />
     <ClInclude Include="Enumerable.hpp" />
     <ClInclude Include="FunctionTraits.hpp" />
