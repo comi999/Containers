@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?> 
-<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
-    <Type Name = "Enumerable&lt;*&gt;::Iterator">
-        <DisplayString Condition="*this==m_Enumerable->End()">{{end}}</DisplayString>
-        <DisplayString Condition="*this!=m_Enumerable->End()">{{not}}</DisplayString>
-    </Type>
-</AutoVisualizer>
