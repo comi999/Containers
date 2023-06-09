@@ -50,6 +50,9 @@ template < typename T >
 class Enumerator;
 
 template < typename T >
+using CEnumerator = Enumerator< const T >;
+
+template < typename T >
 class IIterator
 {
 public:
@@ -58,10 +61,19 @@ public:
 	using ReferenceType = T&;
 	using PointerType = T*;
 	using EnumeratorType = Enumerator< T >;
+	using CEnumeratorType = CEnumerator< T >;
 
-	virtual EnumeratorType ToEnumerator() const = 0;
-	virtual ReferenceType operator*() const = 0;
-	virtual PointerType operator->() const = 0;
+	EnumeratorType ToEnumerator() { return IToEnumerator(); }
+	CEnumeratorType ToEnumerator() const { return const_cast< IIterator* >( this )->IToEnumerator(); }
+	CEnumeratorType ToCEnumerator() const { return const_cast< IIterator* >( this )->IToEnumerator(); }
+	ReferenceType operator*() const { return IDereference(); };
+	PointerType operator->() const { return IArrow(); };
+
+protected:
+
+	virtual EnumeratorType IToEnumerator() = 0;
+	virtual ReferenceType IDereference() const = 0;
+	virtual PointerType IArrow() const = 0;
 };
 
 template < typename T >
@@ -70,10 +82,14 @@ class IForwardIterator : public IIterator< T >
 public:
 
 	using BaseType = IIterator< T >;
-	using ValueType = typename BaseType::ValueType;
-	using ReferenceType = typename BaseType::ReferenceType;
-	using PointerType = typename BaseType::PointerType;
+	using TraitsType = std::iterator_traits< IForwardIterator >;
+	using CategoryType = typename TraitsType::iterator_category;
+	using DifferenceType = typename TraitsType::difference_type;
+	using ValueType = typename TraitsType::value_type;
+	using ReferenceType = typename TraitsType::reference;
+	using PointerType = typename TraitsType::pointer;
 	using EnumeratorType = typename BaseType::EnumeratorType;
+	using CEnumeratorType = typename BaseType::CEnumeratorType;
 
 	IForwardIterator& operator++() { this->IIncrement(); return *this; }
 
@@ -88,10 +104,14 @@ class IBidirectionalIterator : public IForwardIterator< T >
 public:
 
 	using BaseType = IForwardIterator< T >;
-	using ValueType = typename BaseType::ValueType;
-	using ReferenceType = typename BaseType::ReferenceType;
-	using PointerType = typename BaseType::PointerType;
+	using TraitsType = std::iterator_traits< IBidirectionalIterator >;
+	using CategoryType = typename TraitsType::iterator_category;
+	using DifferenceType = typename TraitsType::difference_type;
+	using ValueType = typename TraitsType::value_type;
+	using ReferenceType = typename TraitsType::reference;
+	using PointerType = typename TraitsType::pointer;
 	using EnumeratorType = typename BaseType::EnumeratorType;
+	using CEnumeratorType = typename BaseType::CEnumeratorType;
 
 	IBidirectionalIterator& operator++() { this->IIncrement(); return *this; }
 	IBidirectionalIterator& operator--() { this->IDecrement(); return *this; }
@@ -107,36 +127,42 @@ class IRandomAccessIterator : public IBidirectionalIterator< T >
 public:
 
 	using BaseType = IBidirectionalIterator< T >;
-	using ValueType = typename BaseType::ValueType;
-	using ReferenceType = typename BaseType::ReferenceType;
-	using PointerType = typename BaseType::PointerType;
+	using TraitsType = std::iterator_traits< IRandomAccessIterator >;
+	using CategoryType = typename TraitsType::iterator_category;
+	using DifferenceType = typename TraitsType::difference_type;
+	using ValueType = typename TraitsType::value_type;
+	using ReferenceType = typename TraitsType::reference;
+	using PointerType = typename TraitsType::pointer;
 	using EnumeratorType = typename BaseType::EnumeratorType;
+	using CEnumeratorType = typename BaseType::CEnumeratorType;
 
 	IRandomAccessIterator& operator++() { this->IIncrement(); return *this; }
-	IRandomAccessIterator& operator+=( int64_t a_Offset ) { this->ISeek( a_Offset ); return *this; }
+	IRandomAccessIterator& operator+=( DifferenceType a_Offset ) { this->ISeek( a_Offset ); return *this; }
 	IRandomAccessIterator& operator--() { this->IDecrement(); return *this; }
-	IRandomAccessIterator& operator-=( int64_t a_Offset ) { this->ISeek( -a_Offset ); return *this; }
-	virtual ReferenceType operator[]( int64_t a_Offset ) const = 0;
+	IRandomAccessIterator& operator-=( DifferenceType a_Offset ) { this->ISeek( -a_Offset ); return *this; }
+	ReferenceType operator[]( DifferenceType a_Offset ) const { return this->IAt( a_Offset ); }
 
 protected:
 
 	virtual void ISeek( int64_t a_Offset ) = 0;
+	virtual ReferenceType IAt( DifferenceType a_Offset ) const = 0;
 };
 
 template < typename _Underlying >
-class ForwardIterator : public IForwardIterator< std::remove_reference_t< typename std::iterator_traits< _Underlying >::value_type > >
+class ForwardIterator : public IForwardIterator< std::remove_reference_t< typename std::iterator_traits< _Underlying >::reference > >
 {
 public:
 
-	using BaseType = IForwardIterator< std::remove_reference_t< typename std::iterator_traits< _Underlying >::value_type > >;
+	using BaseType = IForwardIterator< std::remove_reference_t< typename std::iterator_traits< _Underlying >::reference > >;
 	using TraitsType = std::iterator_traits< ForwardIterator >;
+	using CategoryType = typename TraitsType::iterator_category;
+	using DifferenceType = typename TraitsType::difference_type;
 	using ValueType = typename TraitsType::value_type;
 	using ReferenceType = typename TraitsType::reference;
 	using PointerType = typename TraitsType::pointer;
-	using DifferenceType = typename TraitsType::difference_type;
-	using CategoryType = typename TraitsType::iterator_category;
 	using UnderlyingType = _Underlying;
 	using EnumeratorType = typename BaseType::EnumeratorType;
+	using CEnumeratorType = typename BaseType::CEnumeratorType;
 
 	ForwardIterator() = default;
 	ForwardIterator( const ForwardIterator& ) = default;
@@ -144,7 +170,6 @@ public:
 	ForwardIterator( const UnderlyingType& a_Underlying ) : m_Underlying( a_Underlying ) {}
 	ForwardIterator& operator=( const ForwardIterator& ) = default;
 	ForwardIterator& operator=( ForwardIterator&& ) = default;
-	EnumeratorType ToEnumerator() const { return EnumeratorType::FromIterator( m_Underlying ); }
 	ReferenceType operator*() const { return *m_Underlying; }
 	PointerType operator->() const { if constexpr ( !std::is_pointer_v< UnderlyingType > ) { return m_Underlying.operator->(); } else { return m_Underlying; } }
 	ForwardIterator& operator++() { ( void )++m_Underlying; return *this; }
@@ -156,25 +181,29 @@ public:
 
 protected:
 
+	EnumeratorType IToEnumerator() { return EnumeratorType( m_Underlying ); }
+	ReferenceType IDereference() const { return this->operator*(); }
+	PointerType IArrow() const { return this->operator->(); }
 	void IIncrement() { ( void )++m_Underlying; }
 
 	UnderlyingType m_Underlying;
 };
 
 template < typename _Underlying >
-class BidirectionalIterator : public IBidirectionalIterator< std::remove_reference_t< typename std::iterator_traits< _Underlying >::value_type > >
+class BidirectionalIterator : public IBidirectionalIterator< std::remove_reference_t< typename std::iterator_traits< _Underlying >::reference > >
 {
 public:
 
-	using BaseType = IBidirectionalIterator< std::remove_reference_t< typename std::iterator_traits< _Underlying >::value_type > >;
+	using BaseType = IBidirectionalIterator< std::remove_reference_t< typename std::iterator_traits< _Underlying >::reference > >;
 	using TraitsType = std::iterator_traits< BidirectionalIterator >;
+	using CategoryType = typename TraitsType::iterator_category;
+	using DifferenceType = typename TraitsType::difference_type;
 	using ValueType = typename TraitsType::value_type;
 	using ReferenceType = typename TraitsType::reference;
 	using PointerType = typename TraitsType::pointer;
-	using DifferenceType = typename TraitsType::difference_type;
-	using CategoryType = typename TraitsType::iterator_category;
 	using UnderlyingType = _Underlying;
-	using EnumeratorType = Enumerator< std::remove_reference_t< ReferenceType > >;
+	using EnumeratorType = typename BaseType::EnumeratorType;
+	using CEnumeratorType = typename BaseType::CEnumeratorType;
 
 	BidirectionalIterator() = default;
 	BidirectionalIterator( const BidirectionalIterator& ) = default;
@@ -182,7 +211,6 @@ public:
 	BidirectionalIterator( const UnderlyingType& a_Underlying ) : m_Underlying( a_Underlying ) {}
 	BidirectionalIterator& operator=( const BidirectionalIterator& ) = default;
 	BidirectionalIterator& operator=( BidirectionalIterator&& ) = default;
-	EnumeratorType ToEnumerator() const { return EnumeratorType( m_Underlying ); }
 	ReferenceType operator*() const { return *m_Underlying; }
 	PointerType operator->() const { if constexpr ( !std::is_pointer_v< UnderlyingType > ) { return m_Underlying.operator->(); } else { return m_Underlying; } }
 	BidirectionalIterator& operator++() { ( void )++this->m_Underlying; return *this; }
@@ -196,6 +224,9 @@ public:
 
 protected:
 
+	EnumeratorType IToEnumerator() { return EnumeratorType( m_Underlying ); }
+	ReferenceType IDereference() const { return this->operator*(); }
+	PointerType IArrow() const { return this->operator->(); }
 	void IIncrement() { ( void )++m_Underlying; }
 	void IDecrement() { ( void )--m_Underlying; }
 
@@ -203,19 +234,20 @@ protected:
 };
 
 template < typename _Underlying >
-class RandomAccessIterator : public IRandomAccessIterator< std::remove_reference_t< typename std::iterator_traits< _Underlying >::value_type > >
+class RandomAccessIterator : public IRandomAccessIterator< std::remove_reference_t< typename std::iterator_traits< _Underlying >::reference > >
 {
 public:
 
-	using BaseType = IRandomAccessIterator< std::remove_reference_t< typename std::iterator_traits< _Underlying >::value_type > >;
+	using BaseType = IRandomAccessIterator< std::remove_reference_t< typename std::iterator_traits< _Underlying >::reference > >;
 	using TraitsType = std::iterator_traits< RandomAccessIterator >;
+	using CategoryType = typename TraitsType::iterator_category;
+	using DifferenceType = typename TraitsType::difference_type;
 	using ValueType = typename TraitsType::value_type;
 	using ReferenceType = typename TraitsType::reference;
 	using PointerType = typename TraitsType::pointer;
-	using DifferenceType = typename TraitsType::difference_type;
-	using CategoryType = typename TraitsType::iterator_category;
 	using UnderlyingType = _Underlying;
-	using EnumeratorType = Enumerator< std::remove_reference_t< ReferenceType > >;
+	using EnumeratorType = typename BaseType::EnumeratorType;
+	using CEnumeratorType = typename BaseType::CEnumeratorType;
 
 	RandomAccessIterator() = default;
 	RandomAccessIterator( const RandomAccessIterator& ) = default;
@@ -223,16 +255,15 @@ public:
 	RandomAccessIterator( const UnderlyingType& a_Underlying ) : m_Underlying( a_Underlying ) {}
 	RandomAccessIterator& operator=( const RandomAccessIterator& ) = default;
 	RandomAccessIterator& operator=( RandomAccessIterator&& ) = default;
-	EnumeratorType ToEnumerator() const { return EnumeratorType( m_Underlying ); }
 	ReferenceType operator*() const { return *m_Underlying; }
 	PointerType operator->() const { if constexpr ( !std::is_pointer_v< UnderlyingType > ) { return m_Underlying.operator->(); } else { return m_Underlying; } }
 	RandomAccessIterator& operator++() { ++this->m_Underlying; return *this; }
 	RandomAccessIterator operator++( int ) { return RandomAccessIterator( this->m_Underlying++ ); }
-	RandomAccessIterator& operator+=( DifferenceType a_Offset ) const { this->m_Underlying += a_Offset; return *this; }
+	RandomAccessIterator& operator+=( DifferenceType a_Offset ) { this->m_Underlying += a_Offset; return *this; }
 	RandomAccessIterator operator+( DifferenceType a_Offset ) const { return RandomAccessIterator( this->m_Underlying + a_Offset ); }
 	RandomAccessIterator& operator--() { --this->m_Underlying; return *this; }
 	RandomAccessIterator operator--( int ) { return RandomAccessIterator( this->m_Underlying-- ); }
-	RandomAccessIterator& operator-=( DifferenceType a_Offset ) const { this->m_Underlying -= a_Offset; return *this; }
+	RandomAccessIterator& operator-=( DifferenceType a_Offset ) { this->m_Underlying -= a_Offset; return *this; }
 	RandomAccessIterator operator-( DifferenceType a_Offset ) const { return RandomAccessIterator( this->m_Underlying - a_Offset ); }
 	DifferenceType operator-( const RandomAccessIterator& a_Iterator ) const { return this->m_Underlying - a_Iterator.m_Underlying; }
 	bool operator>( const RandomAccessIterator& a_Iterator ) const { return this->m_Underlying > a_Iterator.m_Underlying; }
@@ -247,9 +278,13 @@ public:
 
 protected:
 
+	EnumeratorType IToEnumerator() { return EnumeratorType( m_Underlying ); }
+	ReferenceType IDereference() const { return this->operator*(); }
+	PointerType IArrow() const { return this->operator->(); }
 	void IIncrement() { ( void )++m_Underlying; }
 	void IDecrement() { ( void )--m_Underlying; }
 	void ISeek( int64_t a_Offset ) { m_Underlying += a_Offset; }
+	ReferenceType IAt( DifferenceType a_Offset ) const { return m_Underlying[ a_Offset ]; }
 
 	UnderlyingType m_Underlying;
 };
@@ -258,7 +293,7 @@ template < typename T >
 class Enumerable;
 
 template < typename T >
-using CEnumerator = Enumerator< const T >;
+using CEnumerable = Enumerable< const T >;
 
 enum class EnumeratorOperation
 {
@@ -278,12 +313,24 @@ enum class EnumeratorOperation
 	GreaterEqual,
 	Lesser,
 	LesserEqual,
+	Index,
 	Equal,
-	Unequal,
-	Index
+	Unequal
 };
 
 using EnumeratorVTable = bool( * )( EnumeratorOperation, std::any&, std::any*, uintptr_t, uintptr_t, uintptr_t );
+
+namespace std
+{
+	template < typename It >
+	struct is_enumerator { static constexpr bool value = false; };
+
+	template < typename It >
+	struct is_enumerator< Enumerator< It > > { static constexpr bool value = true; };
+
+	template < typename It >
+	static constexpr bool is_enumerator_v = is_enumerator< It >::value;
+}
 
 template < typename T >
 class Enumerator : public IRandomAccessIterator< T >
@@ -292,11 +339,13 @@ public:
 
 	using BaseType = IRandomAccessIterator< T >;
 	using TraitsType = std::iterator_traits< Enumerator< T > >;
+	using CategoryType = typename TraitsType::iterator_category;
+	using DifferenceType = typename TraitsType::difference_type;
 	using ValueType = typename TraitsType::value_type;
 	using ReferenceType = typename TraitsType::reference;
 	using PointerType = typename TraitsType::pointer;
-	using DifferenceType = typename TraitsType::difference_type;
-	using CategoryType = typename TraitsType::iterator_category;
+	using EnumeratorType = typename BaseType::EnumeratorType;
+	using CEnumeratorType = typename BaseType::CEnumeratorType;
 
 	using VTableType = EnumeratorVTable;
 	using EnumerableType = Enumerable< ValueType >;
@@ -304,40 +353,49 @@ public:
 	Enumerator() = default;
 	Enumerator( const Enumerator& ) = default;
 	Enumerator( Enumerator&& ) = default;
+	Enumerator& operator=( const Enumerator& ) = default;
+	Enumerator& operator=( Enumerator&& ) = default;
 
 	template < typename = std::enable_if_t< std::is_const_v< T > > >
-	Enumerator( const Enumerator< std::remove_const_t< T > >& a_Enumerator ) 
+	Enumerator( const Enumerator< std::decay_t< T > >& a_Enumerator ) 
 		: m_VTable( a_Enumerator.m_VTable )
 		, m_Iterator( a_Enumerator.m_Iterator )
 		, m_Enumerable( a_Enumerator.m_Enumerable )
 	{}
 
+	template < typename = std::enable_if_t< std::is_const_v< T > > >
+	Enumerator( Enumerator< std::decay_t< T > >&& a_Enumerator )
+		: m_VTable( a_Enumerator.m_VTable )
+		, m_Iterator( std::move( a_Enumerator.m_Iterator ) )
+		, m_Enumerable( a_Enumerator.m_Enumerable )
+	{}
+
+private:
+
 	template < typename It >
-	static Enumerator FromIterator( const It& a_Iterator )
-	{
-		return Enumerator( Operator< std::decay_t< It >, false >, std::any( a_Iterator ), nullptr );
-	}
+	static constexpr bool has_compatible_constness_v = std::is_const_v< T > || !std::is_const_v< std::remove_reference_t< decltype( *std::declval< It >() ) > >;
 
-	//template < typename = std::enable_if_t< std::is_const_v< T > > >
-	//Enumerator( Enumerator< std::remove_const_t< T > >&& a_Enumerator )
-	//	: m_VTable( a_Enumerator.m_VTable )
-	//	, m_Iterator( a_Enumerator.m_Iterator )
-	//	, m_Enumerable( a_Enumerator.m_Enumerable )
-	//{}
+	template < typename It >
+	static constexpr bool is_same_v = std::is_same_v< std::decay_t< T >, std::decay_t< decltype( *std::declval< It >() ) > >;
 
-	//template < typename It, typename = std::enable_if_t< std::is_const_v< T > || !std::is_const_v< std::remove_reference_t< decltype( *std::declval< It >() ) > > > >
-	//Enumerator( It& a_Iterator )
-	//	: m_VTable( Operator< std::decay_t< It >, false > )
-	//	, m_Iterator( a_Iterator )
-	//	, m_Enumerable( nullptr )
-	//{}
+	template < typename It >
+	static constexpr bool is_compatible_iterator_v = !std::is_enumerator_v< std::remove_reference_t< It > > && has_compatible_constness_v< std::remove_reference_t< It > > && is_same_v< std::remove_reference_t< It > > && !std::is_const_v< std::remove_reference_t< It > >;
 
-	//template < typename It >
-	//Enumerator( It&& a_Iterator ) 
-	//	: m_VTable( Operator< std::decay_t< It >, false > )
-	//	, m_Iterator( a_Iterator )
-	//	, m_Enumerable( nullptr )
-	//{}
+public:
+
+	template < typename It, typename = std::enable_if_t< is_compatible_iterator_v< It > > >
+	Enumerator( It& a_Iterator )
+		: m_VTable( Operator< It, false > )
+		, m_Iterator( a_Iterator )
+		, m_Enumerable( nullptr )
+	{}
+
+	template < typename It, typename = std::enable_if_t< is_compatible_iterator_v< It > > >
+	Enumerator( It&& a_Iterator )
+		: m_VTable( Operator< It, false > )
+		, m_Iterator( std::forward< It >( a_Iterator ) )
+		, m_Enumerable( nullptr )
+	{}
 
 private:
 
@@ -349,7 +407,7 @@ private:
 
 public:
 
-	Enumerator ToEnumerator() const { return Enumerator( *this ); }
+	Enumerator ToEnumerator() { return Enumerator( *this ); }
 
 	Enumerator Reverse() const
 	{
@@ -369,26 +427,10 @@ public:
 		return Enumerator( Table, std::move( Copy ), m_Enumerable );
 	}
 
-	Enumerator& operator=( const Enumerator& a_Enumerator )
-	{
-		m_VTable = a_Enumerator.m_VTable;
-		m_Iterator = a_Enumerator.m_Iterator;
-		m_Enumerable = a_Enumerator.m_Enumerable;
-		return *this;
-	}
-
-	Enumerator& operator=( Enumerator&& a_Enumerator ) noexcept
-	{
-		m_VTable = a_Enumerator.m_VTable;
-		m_Iterator = std::move( a_Enumerator.m_Iterator );
-		m_Enumerable = a_Enumerator.m_Enumerable;
-		return *this;
-	}
-
-	template < typename It >
+	template < typename It, typename = std::enable_if_t< is_compatible_iterator_v< It > > >
 	Enumerator& operator=( It& a_Iterator );
 
-	template < typename It >
+	template < typename It, typename = std::enable_if_t< is_compatible_iterator_v< It > > >
 	Enumerator& operator=( It&& a_Iterator );
 
 	Enumerator& operator++()
@@ -472,7 +514,7 @@ public:
 		{
 			m_VTable(
 				EnumeratorOperation::Subtraction,
-				const_cast< std::any& >( m_Iterator ),
+				m_Iterator,
 				&Result,
 				( uintptr_t )-a_Offset,
 				( uintptr_t )&Table,
@@ -483,7 +525,7 @@ public:
 		{
 			m_VTable(
 				EnumeratorOperation::Addition,
-				const_cast< std::any& >( m_Iterator ),
+				m_Iterator,
 				&Result,
 				( uintptr_t )a_Offset,
 				( uintptr_t )&Table,
@@ -535,7 +577,7 @@ public:
 		{
 			m_VTable(
 				EnumeratorOperation::Addition,
-				const_cast< std::any& >( m_Iterator ),
+				m_Iterator,
 				&Result,
 				( uintptr_t )-a_Offset,
 				( uintptr_t )&Table,
@@ -546,7 +588,7 @@ public:
 		{
 			m_VTable(
 				EnumeratorOperation::Subtraction,
-				const_cast< std::any& >( m_Iterator ),
+				m_Iterator,
 				&Result,
 				( uintptr_t )a_Offset,
 				( uintptr_t )&Table,
@@ -565,7 +607,7 @@ public:
 		{
 			m_VTable(
 				EnumeratorOperation::AdditionEqual,
-				const_cast< std::any& >( m_Iterator ),
+				m_Iterator,
 				0,
 				( uintptr_t )-a_Offset,
 				0,
@@ -576,7 +618,7 @@ public:
 		{
 			m_VTable(
 				EnumeratorOperation::SubtractionEqual,
-				const_cast< std::any& >( m_Iterator ),
+				m_Iterator,
 				0,
 				( uintptr_t )a_Offset,
 				( uintptr_t )m_Enumerable,
@@ -595,8 +637,8 @@ public:
 
 		m_VTable(
 			EnumeratorOperation::Difference,
-			const_cast< std::any& >( m_Iterator ),
-			const_cast< std::any* >( &a_Enumerator.m_Iterator ),
+			m_Iterator,
+			&a_Enumerator.m_Iterator,
 			( uintptr_t )m_Enumerable,
 			( uintptr_t )&Difference,
 			0
@@ -613,7 +655,7 @@ public:
 
 		m_VTable(
 			EnumeratorOperation::Dereference,
-			const_cast< std::any& >( m_Iterator ),
+			m_Iterator,
 			0,
 			0,
 			0,
@@ -631,7 +673,7 @@ public:
 
 		m_VTable(
 			EnumeratorOperation::Arrow,
-			const_cast< std::any& >( m_Iterator ),
+			m_Iterator,
 			0,
 			0,
 			0,
@@ -647,8 +689,8 @@ public:
 
 		return m_VTable( 
 			EnumeratorOperation::Greater, 
-			const_cast< std::any& >( m_Iterator ),
-			const_cast< std::any* >( &a_Enumerator.m_Iterator ),
+			m_Iterator,
+			&a_Enumerator.m_Iterator,
 			0, 
 			0, 
 			0
@@ -661,8 +703,8 @@ public:
 
 		return m_VTable(
 			EnumeratorOperation::GreaterEqual,
-			const_cast< std::any& >( m_Iterator ),
-			const_cast< std::any* >( &a_Enumerator.m_Iterator ),
+			m_Iterator,
+			&a_Enumerator.m_Iterator,
 			0,
 			0,
 			0
@@ -675,8 +717,8 @@ public:
 
 		return m_VTable(
 			EnumeratorOperation::Lesser,
-			const_cast< std::any& >( m_Iterator ),
-			const_cast< std::any* >( &a_Enumerator.m_Iterator ),
+			m_Iterator,
+			&a_Enumerator.m_Iterator,
 			0,
 			0,
 			0
@@ -689,36 +731,8 @@ public:
 
 		return m_VTable(
 			EnumeratorOperation::LesserEqual,
-			const_cast< std::any& >( m_Iterator ),
-			const_cast< std::any* >( &a_Enumerator.m_Iterator ),
-			0,
-			0,
-			0
-		);
-	}
-
-	bool operator==( const Enumerator< T >& a_Enumerator ) const
-	{
-		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
-
-		return m_VTable(
-			EnumeratorOperation::Equal,
-			const_cast< std::any& >( m_Iterator ),
-			const_cast< std::any* >( &a_Enumerator.m_Iterator ),
-			0,
-			0,
-			0
-		);
-	}
-
-	bool operator!=( const Enumerator< T >& a_Enumerator ) const
-	{
-		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
-
-		return m_VTable(
-			EnumeratorOperation::Unequal,
-			const_cast< std::any& >( m_Iterator ),
-			const_cast< std::any* >( &a_Enumerator.m_Iterator ),
+			m_Iterator,
+			&a_Enumerator.m_Iterator,
 			0,
 			0,
 			0
@@ -733,7 +747,7 @@ public:
 
 		m_VTable(
 			EnumeratorOperation::Index,
-			const_cast< std::any& >( m_Iterator ),
+			m_Iterator,
 			0,
 			( uintptr_t )( uint64_t )a_Offset,
 			( uintptr_t )m_Enumerable,
@@ -743,14 +757,46 @@ public:
 		return *Result;
 	}
 
+	bool operator==( const Enumerator< T >& a_Enumerator ) const
+	{
+		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
+
+		return m_VTable(
+			EnumeratorOperation::Equal,
+			m_Iterator,
+			&a_Enumerator.m_Iterator,
+			0,
+			0,
+			0
+		);
+	}
+
+	bool operator!=( const Enumerator< T >& a_Enumerator ) const
+	{
+		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
+
+		return m_VTable(
+			EnumeratorOperation::Unequal,
+			m_Iterator,
+			&a_Enumerator.m_Iterator,
+			0,
+			0,
+			0
+		);
+	}
+
 	const std::any& AsAny() const { return m_Iterator; }
 	const std::type_info& GetType() const { return m_Iterator.type(); }
 
 protected:
-
-	void IIncrement() { ++*this; }
-	void IDecrement() { --*this; }
-	void ISeek( int64_t a_Offset ) { *this += a_Offset; }
+	
+	EnumeratorType IToEnumerator() { return *this; }
+	ReferenceType IDereference() const { return this->operator*(); }
+	PointerType IArrow() const { return this->operator->(); }
+	void IIncrement() { ( void )++*this; }
+	void IDecrement() { ( void )--* this; }
+	void ISeek( DifferenceType a_Offset ) { *this += a_Offset; }
+	ReferenceType IAt( DifferenceType a_Offset ) const { return this->operator[]( a_Offset ); }
 
 private:
 
@@ -835,13 +881,13 @@ private:
 			if constexpr ( !_Reversed )
 			{
 				It Result = Operator_Addition< It >( ( It& )a_Iterator0, ( size_t )a_Arg0 );
-				( It& )*a_Iterator1 = std::move( Result );
+				*a_Iterator1 = std::any( std::move( Result ) );
 				*( VTableType* )a_Arg1 = Operator< It, _Reversed >;
 			}
 			else
 			{
 				It Result = Operator_Subtraction< It >( ( It& )a_Iterator0, ( size_t )a_Arg0, ( const EnumerableType* )a_Arg2 );
-				( It& )*a_Iterator1 = std::move( Result );
+				*a_Iterator1 = std::any( std::move( Result ) );
 				*( VTableType* )a_Arg1 = Operator< It, _Reversed >;
 			}
 
@@ -865,13 +911,13 @@ private:
 			if constexpr ( !_Reversed )
 			{
 				It Result = Operator_Subtraction< It >( ( It& )a_Iterator0, ( size_t )a_Arg0, ( const EnumerableType* )a_Arg2 );
-				( It& )*a_Iterator1 = std::move( Result );
+				*a_Iterator1 = std::any( std::move( Result ) );
 				*( VTableType* )a_Arg1 = Operator< It, _Reversed >;
 			}
 			else
 			{
 				It Result = Operator_Addition< It >( ( It& )a_Iterator0, ( size_t )a_Arg0 );
-				( It& )*a_Iterator1 = std::move( Result );
+				*a_Iterator1 = std::any( std::move( Result ) );
 				*( VTableType* )a_Arg1 = Operator< It, _Reversed >;
 			}
 
@@ -1021,36 +1067,42 @@ private:
 	template < typename It > static decltype( auto ) Operator_Inequal( It& a_Left, It& a_Right );
 
 	VTableType            m_VTable;
-	std::any              m_Iterator;
+	mutable std::any      m_Iterator;
 	const EnumerableType* m_Enumerable;
 };
-
-template < typename T >
-class Enumerable;
 
 template < typename T >
 class ICollection
 {
 public:
 
-	using ValueType = T;
-	using EnumerableType = Enumerable< T >;
+	using ValueType = std::decay_t< T >;
 	using IteratorType = Enumerator< T >;
 	using CIteratorType = CEnumerator< T >;
+	using EnumeratorType = Enumerator< T >;
+	using CEnumeratorType = CEnumerator< T >;
+	using EnumerableType = Enumerable< T >;
+	using CEnumerableType = CEnumerable< T >;
 
 	IteratorType Begin() { return IBegin(); }
 	CIteratorType Begin() const { return const_cast< ICollection* >( this )->IBegin(); }
+	CIteratorType CBegin() const { return const_cast< ICollection* >( this )->IBegin(); }
 	IteratorType End() { return IEnd(); }
 	CIteratorType End() const { return const_cast< ICollection* >( this )->IEnd(); }
-
-	EnumerableType ToEnumerable() = 0;
-	virtual size_t Size() const = 0;
-	virtual size_t MaxSize() const = 0;
+	CIteratorType CEnd() const { return const_cast< ICollection* >( this )->IEnd(); }
+	EnumerableType ToEnumerable() { return IToEnumerable(); }
+	CEnumerableType ToEnumerable() const { return const_cast< ICollection* >( this )->IToEnumerable(); }
+	CEnumerableType ToCEnumerable() const { return const_cast< ICollection* >( this )->IToEnumerable(); }
+	size_t Size() const { return ISize(); }
+	size_t MaxSize() const { return IMaxSize(); }
 
 protected:
 
-	virtual IteratorType IBegin() = 0;
-	virtual IteratorType IEnd() = 0;
+	virtual EnumerableType IToEnumerable() = 0;
+	virtual size_t ISize() const = 0;
+	virtual size_t IMaxSize() const = 0;
+	virtual EnumeratorType IBegin() = 0;
+	virtual EnumeratorType IEnd() = 0;
 };
 
 template < typename T >
@@ -1059,14 +1111,31 @@ class IContiguousCollection : public ICollection< T >
 public:
 
 	using BaseType = ICollection< T >;
+	using IteratorType = typename BaseType::IteratorType;
+	using CIteratorType = typename BaseType::CIteratorType;
+	using RIteratorType = Enumerator< T >;
+	using CRIteratorType = CEnumerator< T >;
+	using EnumeratorType = typename BaseType::EnumeratorType;
+	using CEnumeratorType = typename BaseType::CEnumeratorType;
+	using EnumerableType = typename BaseType::EnumerableType;
+	using CEnumerableType = typename BaseType::CEnumerableType;
+
+	RIteratorType RBegin() { return IRBegin(); }
+	CRIteratorType RBegin() const { return const_cast< ICollection* >( this )->IRBegin(); }
+	CRIteratorType CRBegin() const { return const_cast< ICollection* >( this )->IRBegin(); }
+	RIteratorType REnd() { return IREnd(); }
+	CRIteratorType REnd() const { return const_cast< ICollection* >( this )->IREnd(); }
+	CRIteratorType CREnd() const { return const_cast< ICollection* >( this )->IREnd(); }
 
 	T* Data() { return IData(); }
-	const T* Data() const { return const_cast< IContainerIterator* >( this )->IData(); }
+	const T* Data() const { return const_cast< IContiguousCollection* >( this )->IData(); }
 	T& At( size_t a_Index ) { return IAt( a_Index ); }
 	const T& At( size_t a_Index ) const { return const_cast< IContiguousCollection* >( this )->IAt( a_Index ); }
 
 protected:
 
+	virtual EnumeratorType IRBegin() = 0;
+	virtual EnumeratorType IREnd() = 0;
 	virtual T* IData() = 0;
 	virtual T& IAt( size_t a_Index ) = 0;
 };
@@ -1074,30 +1143,57 @@ protected:
 template < typename T >
 class Enumerable : public ICollection< T >
 {
-	static_assert( std::is_same_v< std::decay_t< T >, T >, "Use of non-decayed type not allowed." );
-
 public:
 
+	using BaseType = ICollection< T >;
 	using IteratorType = Enumerator< T >;
 	using CIteratorType = CEnumerator< T >;
 	using RIteratorType = Enumerator< T >;
 	using CRIteratorType = CEnumerator< T >;
+	using EnumeratorType = typename BaseType::EnumeratorType;
+	using CEnumeratorType = typename BaseType::CEnumeratorType;
+	using EnumerableType = typename BaseType::EnumerableType;
+	using CEnumerableType = typename BaseType::CEnumerableType;
 
 	Enumerable() = default;
 	Enumerable( const Enumerable& ) = default;
 	Enumerable( Enumerable&& ) = default;
 
-	Enumerable( size_t a_Size, const IteratorType& a_Begin, const IteratorType& a_End )
+	template < typename = std::enable_if_t< std::is_const_v< T > > >
+	Enumerable( const Enumerable< std::remove_const_t< T > >& a_Enumerable )
+		: m_Size( a_Enumerable.m_Size )
+		, m_Begin( a_Enumerable.m_Begin )
+		, m_End( a_Enumerable.m_End )
+	{}
+
+	Enumerable( size_t a_Size, const EnumeratorType& a_Begin, const EnumeratorType& a_End )
+		: m_Size( a_Size )
+		, m_Begin( a_Begin )
+		, m_End( a_End )
+	{}
+
+	template < typename It, typename = std::enable_if_t< !std::is_enumerator_v< It > > >
+	Enumerable( It& a_Begin, It& a_End )
+		: m_Size( std::distance( a_Begin, a_End ) )
+		, m_Begin( a_Begin )
+		, m_End( a_End )
+	{}
+
+	template < typename It, typename = std::enable_if_t< !std::is_enumerator_v< It > > >
+	Enumerable( size_t a_Size, It& a_Begin, It& a_End )
 		: m_Size( a_Size )
 		, m_Begin( a_Begin )
 		, m_End( a_End )
 	{}
 
 	const std::type_info& GetType() const { return m_Begin.GetType(); }
+	EnumerableType ToEnumerable() { return *this; }
+	CEnumerableType ToEnumerable() const { return *this; }
+	CEnumerableType ToCEnumerable() const { return *this; }
 	size_t Size() const { return m_Size; }
 	size_t MaxSize() const { return static_cast< size_t >( -1 ); }
 
-	IteratorType Begin() { return IteratorType( m_Begin.m_VTable, std::any( m_Begin.m_Iterator ), this ); }
+	IteratorType Begin() { return m_Begin; }
 	CIteratorType Begin() const { return m_Begin; }
 	CIteratorType CBegin() const { return m_Begin; }
 	IteratorType End() { return m_End; }
@@ -1106,10 +1202,15 @@ public:
 
 protected:
 
+	size_t ISize() const { return Size(); }
+	size_t IMaxSize() const { return MaxSize(); }
+	EnumerableType IToEnumerable() { return *this; }
 	IteratorType IBegin() { return m_Begin; }
 	IteratorType IEnd() { return m_End; }
 
 private:
+
+	template < class > friend class Enumerable;
 	
 	size_t m_Size;
 	IteratorType m_Begin;
@@ -1119,7 +1220,27 @@ private:
 namespace std
 {
 	template < typename T >
-	struct iterator_traits< Enumerator< T > >
+	struct iterator_traits< IForwardIterator< T > >
+	{
+		using iterator_category = std::forward_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = std::decay_t< T >;
+		using reference = T&;
+		using pointer = T*;
+	};
+
+	template < typename T >
+	struct iterator_traits< IBidirectionalIterator< T > >
+	{
+		using iterator_category = std::bidirectional_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = std::decay_t< T >;
+		using reference = T&;
+		using pointer = T*;
+	};
+
+	template < typename T >
+	struct iterator_traits< IRandomAccessIterator< T > >
 	{
 		using iterator_category = std::random_access_iterator_tag;
 		using difference_type = std::ptrdiff_t;
@@ -1157,24 +1278,36 @@ namespace std
 		using reference = typename std::iterator_traits< T >::reference;
 		using pointer = typename std::iterator_traits< T >::pointer;
 	};
+
+	template < typename T >
+	struct iterator_traits< Enumerator< T > >
+	{
+		using iterator_category = std::random_access_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = std::decay_t< T >;
+		using reference = T&;
+		using pointer = T*;
+	};
 }
 
 template < typename T >
-template < typename It >
+template < typename It, typename >
 Enumerator< T >& Enumerator< T >::operator=( It& a_Iterator )
 {
 	m_VTable = Operator< It, false >;
 	m_Iterator = a_Iterator;
 	m_Enumerable = 0;
+	return *this;
 }
 
 template < typename T >
-template < typename It >
+template < typename It, typename >
 Enumerator< T >& Enumerator< T >::operator=( It&& a_Iterator )
 {
 	m_VTable = Operator< It, false >;
 	m_Iterator = std::forward< It >( a_Iterator );
 	m_Enumerable = 0;
+	return *this;
 }
 
 template < typename T >
@@ -1546,20 +1679,6 @@ decltype( auto ) Enumerator< T >::Operator_LesserEqual( It& a_Left, It& a_Right,
 
 template < typename T >
 template < typename It >
-decltype( auto ) Enumerator< T >::Operator_Equal( It& a_Left, It& a_Right )
-{
-	return a_Left == a_Right;
-}
-
-template < typename T >
-template < typename It >
-decltype( auto ) Enumerator< T >::Operator_Inequal( It& a_Left, It& a_Right )
-{
-	return a_Left != a_Right;
-}
-
-template < typename T >
-template < typename It >
 decltype( auto ) Enumerator< T >::Operator_Index( It& a_Iterator, int64_t a_Offset, const EnumerableType* a_Bounds )
 {
 	if constexpr ( IsRandomAccessIterator< It >() )
@@ -1577,4 +1696,34 @@ decltype( auto ) Enumerator< T >::Operator_Index( It& a_Iterator, int64_t a_Offs
 			return *Operator_Addition< It >( a_Iterator, ( size_t )a_Offset );
 		}
 	}
+}
+
+template < typename T >
+template < typename It >
+decltype( auto ) Enumerator< T >::Operator_Equal( It& a_Left, It& a_Right )
+{
+	return a_Left == a_Right;
+}
+
+template < typename T >
+template < typename It >
+decltype( auto ) Enumerator< T >::Operator_Inequal( It& a_Left, It& a_Right )
+{
+	return a_Left != a_Right;
+}
+
+namespace std
+{
+	template < typename T > auto begin( Enumerable< T >& a_Enumerable ) { return a_Enumerable.Begin(); }
+	template < typename T > auto begin( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.Begin(); }
+	template < typename T > auto cbegin( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.CBegin(); }
+	template < typename T > auto rbegin( Enumerable< T >& a_Enumerable ) { return a_Enumerable.RBegin(); }
+	template < typename T > auto rbegin( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.RBegin(); }
+	template < typename T > auto crbegin( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.CRBegin(); }
+	template < typename T > auto end( Enumerable< T >& a_Enumerable ) { return a_Enumerable.End(); }
+	template < typename T > auto end( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.End(); }
+	template < typename T > auto cend( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.CEnd(); }
+	template < typename T > auto rend( Enumerable< T >& a_Enumerable ) { return a_Enumerable.REnd(); }
+	template < typename T > auto rend( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.REnd(); }
+	template < typename T > auto crend( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.CREnd(); }
 }

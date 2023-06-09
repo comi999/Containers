@@ -15,16 +15,25 @@ template < typename T, size_t _Size >
 using ArrayCRIterator = RandomAccessIterator< typename std::array< T, _Size >::const_reverse_iterator >;
 
 template < typename T, size_t _Size >
-class Array : public ICollection< T >
+class Array : public IContiguousCollection< T >
 {
 public:
 
+	using BaseType = IContiguousCollection< T >;
+	using UnderlyingType = std::array< T, _Size >;
 	using IteratorType = ArrayIterator< T, _Size >;
 	using CIteratorType = ArrayCIterator< T, _Size >;
 	using RIteratorType = ArrayRIterator< T, _Size >;
 	using CRIteratorType = ArrayCRIterator< T, _Size >;
-	using BaseType = ICollection< T >;
-	using UnderlyingType = std::array< T, _Size >;
+	using EnumeratorType = typename BaseType::EnumeratorType;
+	using CEnumeratorType = typename BaseType::CEnumeratorType;
+	using EnumerableType = typename BaseType::EnumerableType;
+	using CEnumerableType = typename BaseType::CEnumerableType;
+
+	Array() = default;
+	Array( const Array& ) = default;
+	Array( Array&& ) = default;
+	//Array( std::initializer_list< T > a_InitializerList );
 
 	size_t Size() const { return m_Underlying.size(); }
 	size_t MaxSize() const { return m_Underlying.max_size(); }
@@ -43,10 +52,24 @@ public:
 
 protected:
 
-	Enumerator< T > IBegin() const { return Enumerator< T >( m_Underlying.begin() ); }
-	Enumerator< T > IEnd() const { return Enumerator< T >( m_Underlying.end() ); }
+	EnumerableType IToEnumerable() { return EnumerableType( Size(), Begin(), End() ); }
+	EnumeratorType IBegin() { return EnumeratorType( m_Underlying.begin() ); }
+	EnumeratorType IEnd() { return EnumeratorType( m_Underlying.end() ); }
+	EnumeratorType IRBegin() { return EnumeratorType( m_Underlying.rbegin() ); }
+	EnumeratorType IREnd() { return EnumeratorType( m_Underlying.rend() ); }
+
+	size_t ISize() const { return m_Underlying.size(); }
+	size_t IMaxSize() const { return m_Underlying.max_size(); }
+	T* IData() { return m_Underlying.data(); }
+	T& IAt( size_t a_Index ) { return m_Underlying.at( a_Index ); }
 
 private:
 
 	UnderlyingType m_Underlying;
 };
+
+//template < typename T, size_t _Size >
+//Array< T, _Size >::Array( std::initializer_list< T > a_InitializerList )
+//{
+//
+//}

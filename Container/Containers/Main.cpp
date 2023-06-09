@@ -11,22 +11,28 @@
 #include "Array.hpp"
 
 #include <forward_list>
-
-using iter = typename std::forward_list< int >::iterator;
-using fitr = ForwardIterator< iter >;
+#include <vector>
 
 int main()
 {
-	std::forward_list< int > fl = { 1, 2, 3, 4 };
-	fitr beg( fl.begin() );
-	fitr end( fl.end() );
-	Enumerable< int > enm( 4, beg.ToEnumerator(), end.ToEnumerator() );
+	Array<int, 3> ar;// = { 1, 2, 3 };
+	ar.At( 0 ) = 1;
+	ar.At( 1 ) = 2;
+	ar.At( 2 ) = 3;
 
-	auto enumerator = enm.Begin();
-	*enumerator = 4;
-	enumerator += 3;
-	*enumerator = 3;
-	--enumerator;
-	*enumerator = 10;
-	enumerator[ -1 ] = 11;
+	IContiguousCollection<int>& arr = ar;
+	auto enumer = arr.ToEnumerable();
+	auto b0 = enumer.Begin() + 1;
+	auto v1 = *b0;
+	*( enumer.Begin() + 0 ) = 1;
+	*( enumer.Begin() + 1 ) = 2;
+	*( enumer.Begin() + 2 ) = 3;
+	auto beg = enumer.CBegin();
+	auto end = enumer.CEnd();
+	CEnumerable< int > er1( 3, beg, end );
+
+	for ( auto& c : er1 )
+	{
+		std::cout << c << std::endl;
+	}
 }
