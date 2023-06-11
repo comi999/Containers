@@ -17,6 +17,13 @@ using CEnumerator = Enumerator< const T >;
 template < typename T >
 using InitializerList = std::initializer_list< T >;
 
+enum class EIteratorType
+{
+	Forward,
+	Bidirectional,
+	RandomAccess
+};
+
 template < typename T >
 class IIterator
 {
@@ -33,9 +40,11 @@ public:
 	CEnumeratorType ToCEnumerator() const { return const_cast< IIterator* >( this )->IToEnumerator(); }
 	ReferenceType operator*() const { return IDereference(); };
 	PointerType operator->() const { return IArrow(); };
+	EIteratorType Type() const { return IType(); }
 
 protected:
 
+	virtual EIteratorType IType() const = 0;
 	virtual EnumeratorType IToEnumerator() = 0;
 	virtual ReferenceType IDereference() const = 0;
 	virtual PointerType IArrow() const = 0;
@@ -60,6 +69,7 @@ public:
 
 protected:
 
+	EIteratorType IType() const { return EIteratorType::Forward; }
 	virtual void IIncrement() = 0;
 };
 
@@ -83,6 +93,7 @@ public:
 
 protected:
 
+	EIteratorType IType() const { return EIteratorType::Bidirectional; }
 	virtual void IDecrement() = 0;
 };
 
@@ -109,6 +120,7 @@ public:
 
 protected:
 
+	EIteratorType IType() const { return EIteratorType::RandomAccess; }
 	virtual void ISeek( int64_t a_Offset ) = 0;
 	virtual ReferenceType IAt( DifferenceType a_Offset ) const = 0;
 };
@@ -1235,6 +1247,19 @@ public:
 	CEnumerableType ToCEnumerable() const { return const_cast< ICollection* >( this )->IToEnumerable(); }
 	size_t Size() const { return ISize(); }
 	size_t MaxSize() const { return IMaxSize(); }
+	
+	//bool Contains(const T&);
+	//bool Contains(Func&&);
+	//const T* Find(const T&) const;
+	//T* Find(const T&);
+	//const T* Find(Func&&) const;
+	//T* Find(Func&&);
+	//const T* FindLast(const T&) const;
+	//T* FindLast(const T&);
+	//const T* FindLast(Func&&) const;
+	//T* FindLast(Func&&);
+	//Collection<const T*> FindAll(const T&) const;
+	//Collection<T*> FindAll(Func&&);
 
 protected:
 
@@ -1271,6 +1296,15 @@ public:
 	const T* Data() const { return const_cast< IContiguousCollection* >( this )->IData(); }
 	T& At( size_t a_Index ) { return IAt( a_Index ); }
 	const T& At( size_t a_Index ) const { return const_cast< IContiguousCollection* >( this )->IAt( a_Index ); }
+
+	//bool IsValidIndex(size_t);
+	//size_t IndexOf(const T&) const;
+	//size_t IndexOf(Func&&) const;
+	//const T& At(size_t) const;
+	//T& At(size_t);
+	//const T& operator[] const;
+	//T& operator[];
+
 
 protected:
 
@@ -1877,3 +1911,20 @@ namespace std
 	template < typename T > auto rend( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.REnd(); }
 	template < typename T > auto crend( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.CREnd(); }
 }
+
+//template < typename T >
+//bool ICollection< T >::Contains( const T& a_Value ) const
+//{
+//	auto& Iter = Begin().AsIterator();
+//	size_t Length = Size();
+//
+//	for ( size_t i = 0; i < Length; ++i, ++Iter )
+//	{
+//		if ( *Iter == a_Value )
+//		{
+//			return true;
+//		}
+//	}
+//
+//	return false;
+//}

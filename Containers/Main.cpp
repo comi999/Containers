@@ -10,14 +10,13 @@
 
 #include "Array.hpp"
 
-#include <forward_list>
-#include <vector>
-
-
-constexpr const Array< int, 5 > ar = { 1, 2, 3, 4, 5 };
-constexpr const Array< int, 2 >& ar1 = ar.SubArray< 2, 2 >();
+constexpr const Array< int, 2 > arr = { 2, 3, };
+constexpr const std::array< int, 2 > ar0 = { 2, 3 };
 
 int main()
 {
-	Array< int, 2 > ar1 = { 1, 2 };
+	Array< int, 10 > ar = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+	ICollection< int >& arc = ar;
+
+	//bool val = arc.Contains( 11 );
 }

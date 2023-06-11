@@ -37,7 +37,7 @@ public:
 	constexpr Array( const InitializerList< T >& a_InitializerList );
 	constexpr Array( InitializerList< T >&& a_InitializerList );
 	constexpr Array( const T( &a_Array )[ _Size ] );
-	constexpr Array( T( && a_Array )[ _Size ] );
+	constexpr Array( T( &&a_Array )[ _Size ] );
 
 private:
 
@@ -76,12 +76,6 @@ public:
 	constexpr size_t MaxSize() const { return m_Underlying.max_size(); }
 	constexpr size_t Size() const { return m_Underlying.size(); }
 	constexpr void Swap( const Array& a_Array ) { m_Underlying.swap( a_Array.m_Underlying ); }
-
-	template < size_t _Index, size_t _Count >
-	constexpr const Array< T, _Count >& SubArray() const;
-
-	template < size_t _Index, size_t _Count >
-	constexpr Array< T, _Count > SubArray();
 
 	constexpr IteratorType Begin() { return m_Underlying.begin(); }
 	constexpr CIteratorType Begin() const { return m_Underlying.cbegin(); }
@@ -160,6 +154,8 @@ namespace std
 	};
 }
 
+
+
 template < typename T, size_t _Size >
 constexpr Array< T, _Size >::Array( const T& a_InitializerValue )
 	: Array( a_InitializerValue, std::make_index_sequence< _Size >{} )
@@ -218,18 +214,4 @@ template < size_t... Idxs >
 constexpr Array< T, _Size >::Array( InitializerList< T >&& a_InitializerList, std::index_sequence< Idxs... > )
 {
 	( ( m_Underlying[ Idxs ] = std::move( *( a_InitializerList.begin() + Idxs ) ) ), ... );
-}
-
-template < typename T, size_t _Size >
-template < size_t _Index, size_t _Count >
-constexpr const Array< T, _Count >& Array< T, _Size >::SubArray() const
-{
-	return *reinterpret_cast< Array< T, _Count >* >( m_Underlying.data() + _Index );
-}
-
-template < typename T, size_t _Size >
-template < size_t _Index, size_t _Count >
-constexpr Array< T, _Count > Array< T, _Size >::SubArray()
-{
-	return *reinterpret_cast< Array< T, _Count >* >( m_Underlying.data() + _Index );
 }
