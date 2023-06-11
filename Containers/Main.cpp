@@ -13,26 +13,11 @@
 #include <forward_list>
 #include <vector>
 
+
+constexpr const Array< int, 5 > ar = { 1, 2, 3, 4, 5 };
+constexpr const Array< int, 2 >& ar1 = ar.SubArray< 2, 2 >();
+
 int main()
 {
-	Array<int, 3> ar;// = { 1, 2, 3 };
-	ar.At( 0 ) = 1;
-	ar.At( 1 ) = 2;
-	ar.At( 2 ) = 3;
-
-	IContiguousCollection<int>& arr = ar;
-	auto enumer = arr.ToEnumerable();
-	auto b0 = enumer.Begin() + 1;
-	auto v1 = *b0;
-	*( enumer.Begin() + 0 ) = 1;
-	*( enumer.Begin() + 1 ) = 2;
-	*( enumer.Begin() + 2 ) = 3;
-	auto beg = enumer.CBegin();
-	auto end = enumer.CEnd();
-	CEnumerable< int > er1( 3, beg, end );
-
-	for ( auto& c : er1 )
-	{
-		std::cout << c << std::endl;
-	}
+	Array< int, 2 > ar1 = { 1, 2 };
 }
