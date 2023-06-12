@@ -26,6 +26,12 @@
     <ClInclude Include="Array.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FunctionTraits.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Invoker.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Containers.natvis" />

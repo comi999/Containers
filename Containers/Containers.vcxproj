@@ -133,6 +133,8 @@
   <ItemGroup>
     <ClInclude Include="Array.hpp" />
     <ClInclude Include="Container.hpp" />
+    <ClInclude Include="FunctionTraits.hpp" />
+    <ClInclude Include="Invoker.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Containers.natvis" />

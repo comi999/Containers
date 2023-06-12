@@ -1,6 +1,8 @@
 #pragma once
 #include <any>
 
+#include "Invoker.hpp"
+
 #define ENUMERATOR_ERROR_MESSAGE_FORWARD_ITERATOR "Iterator must be at least a forward iterator."
 #define ENUMERATOR_ERROR_MESSAGE_BIDIRECTIONAL_ITERATOR "Iterator must be at least a bidirectional iterator."
 #define ENUMERATOR_ERROR_MESSAGE_BOUNDING_ENUMERABLE_BIDIRECTIONAL "Non-bidirectional iterators require a bounding Enumerable."
@@ -1224,6 +1226,9 @@ private:
 };
 
 template < typename T >
+class Collection;
+
+template < typename T >
 class ICollection
 {
 public:
@@ -1247,19 +1252,45 @@ public:
 	CEnumerableType ToCEnumerable() const { return const_cast< ICollection* >( this )->IToEnumerable(); }
 	size_t Size() const { return ISize(); }
 	size_t MaxSize() const { return IMaxSize(); }
-	
-	//bool Contains(const T&);
-	//bool Contains(Func&&);
-	//const T* Find(const T&) const;
-	//T* Find(const T&);
-	//const T* Find(Func&&) const;
-	//T* Find(Func&&);
-	//const T* FindLast(const T&) const;
-	//T* FindLast(const T&);
-	//const T* FindLast(Func&&) const;
-	//T* FindLast(Func&&);
-	//Collection<const T*> FindAll(const T&) const;
-	//Collection<T*> FindAll(Func&&);
+
+	bool Contains( const T& a_Value ) const;
+	bool Contains( const Predicate< const T& >& a_Predicate ) const;
+	const T* Find( const T& a_Value ) const { return const_cast< ICollection* >( this )->Find( a_Value ); }
+	const T* Find( const Predicate< const T& >& a_Predicate ) const { return const_cast< ICollection* >( this )->Find( a_Predicate ); }
+	T* Find( const T& a_Value );
+	T* Find( const Predicate< const T& >& a_Predicate );
+	const T* FindLast( const T& a_Value ) const { return const_cast< ICollection* >( this )->FindLast( a_Value ); }
+	const T* FindLast( const Predicate< const T& >& a_Predicate ) const { return const_cast< ICollection* >( this )->FindLast( a_Predicate ); }
+	T* FindLast( const T& a_Value );
+	T* FindLast( const Predicate< const T& >& a_Predicate );
+	Collection< const T* > FindAll( const T& a_Value ) const;
+	Collection< const T* > FindAll( const Predicate< const T& >& a_Predicate ) const;
+	Collection< T* > FindAll( const T& a_Value );
+	Collection< T* > FindAll( const Predicate< const T& >& a_Predicate );
+
+	template < typename U = T >
+	U Aggregate( const Invoker< U, const T&, const U& >& a_Aggregator ) const;
+
+	template < typename U = T >
+	U Aggregate( const U& a_Seed, const Invoker< U, const T&, const U& >& a_Aggregator ) const;
+
+	bool TrueForAll( const Predicate< const T& >& a_Predicate ) const;
+	bool TrueForAny( const Predicate< const T& >& a_Predicate ) const;
+
+	template < typename U >
+	std::enable_if_t< std::is_arithmetic_v< U >, U > Average() const;
+
+	template < typename U >
+	std::enable_if_t< std::is_arithmetic_v< U >, U > Average( const Invoker< U, const T& >& a_Converter ) const;
+
+	size_t Count( const T& a_Value ) const;
+	size_t Count( const Predicate< const T& >& a_Predicate ) const;
+
+	Collection< const T* > Distinct() const;
+	Collection< const T* > Distinct( const EqualityComparer< const T& >& a_EqualityComparer ) const;
+
+	Collection< T* > Distinct();
+	Collection< T* > Distinct( const EqualityComparer< const T& >& a_EqualityComparer );
 
 protected:
 

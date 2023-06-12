@@ -154,8 +154,6 @@ namespace std
 	};
 }
 
-
-
 template < typename T, size_t _Size >
 constexpr Array< T, _Size >::Array( const T& a_InitializerValue )
 	: Array( a_InitializerValue, std::make_index_sequence< _Size >{} )
