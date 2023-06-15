@@ -18,6 +18,12 @@ template < typename T >
 using CEnumerator = Enumerator< const T >;
 
 template < typename T >
+class Enumerable;
+
+template < typename T >
+using CEnumerable = Enumerable< const T >;
+
+template < typename T >
 using InitializerList = std::initializer_list< T >;
 
 enum class EIteratorType
@@ -314,38 +320,6 @@ private:
 	UnderlyingType m_Underlying;
 };
 
-template < typename T >
-class Enumerable;
-
-template < typename T >
-using CEnumerable = Enumerable< const T >;
-
-enum class EnumeratorOperation
-{
-	Reverse, 
-	IsReversed,
-	PreIncrement,
-	PostIncrement,
-	PreDecrement,
-	PostDecrement,
-	Addition,
-	AdditionEqual,
-	Subtraction,
-	SubtractionEqual,
-	Difference,
-	Dereference,
-	Arrow,
-	Greater,
-	GreaterEqual,
-	Lesser,
-	LesserEqual,
-	Index,
-	Equal,
-	Unequal
-};
-
-using EnumeratorVTable = bool( * )( EnumeratorOperation, std::any&, std::any*, uintptr_t, uintptr_t, uintptr_t );
-
 namespace std
 {
 	template < typename It >
@@ -511,6 +485,32 @@ namespace std
 	static constexpr bool is_const_enumerator_v = is_const_enumerator< It >::value;
 }
 
+enum class EEnumeratorOperation
+{
+	Reverse,
+	IsReversed,
+	PreIncrement,
+	PostIncrement,
+	PreDecrement,
+	PostDecrement,
+	Addition,
+	AdditionEqual,
+	Subtraction,
+	SubtractionEqual,
+	Difference,
+	Dereference,
+	Arrow,
+	Greater,
+	GreaterEqual,
+	Lesser,
+	LesserEqual,
+	Index,
+	Equal,
+	Unequal
+};
+
+using EnumeratorVTable = bool( * )( EEnumeratorOperation, std::any&, std::any*, uintptr_t, uintptr_t, uintptr_t );
+
 template < typename T >
 class Enumerator : public IRandomAccessIterator< T >
 {
@@ -546,7 +546,7 @@ public:
 	Enumerator( Enumerator< std::decay_t< T > >&& a_Enumerator )
 		: m_VTable( a_Enumerator.m_VTable )
 		, m_Iterator( std::move( a_Enumerator.m_Iterator ) )
-		, m_Enumerable( a_Enumerator.m_Enumerable )
+		, m_Enumerable( ( EnumerableType* )a_Enumerator.m_Enumerable )
 	{}
 
 private:
@@ -594,7 +594,7 @@ public:
 
 		VTableType Table;
 		m_VTable(
-			EnumeratorOperation::Reverse,
+			EEnumeratorOperation::Reverse,
 			m_Iterator,
 			0,
 			( uintptr_t )&Table,
@@ -611,7 +611,7 @@ public:
 		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
 
 		return m_VTable(
-			EnumeratorOperation::IsReversed,
+			EEnumeratorOperation::IsReversed,
 			m_Iterator,
 			0,
 			0,
@@ -631,7 +631,7 @@ public:
 		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
 
 		m_VTable( 
-			EnumeratorOperation::PreIncrement,
+			EEnumeratorOperation::PreIncrement,
 			m_Iterator,
 			0, 
 			0, 
@@ -650,7 +650,7 @@ public:
 		VTableType Table;
 
 		m_VTable( 
-			EnumeratorOperation::PostIncrement,
+			EEnumeratorOperation::PostIncrement,
 			m_Iterator,
 			&Result, 
 			( uintptr_t )&Table, 
@@ -666,7 +666,7 @@ public:
 		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
 
 		m_VTable( 
-			EnumeratorOperation::PreDecrement,
+			EEnumeratorOperation::PreDecrement,
 			m_Iterator, 
 			0, 
 			( uintptr_t )m_Enumerable, 
@@ -685,7 +685,7 @@ public:
 		VTableType Table;
 
 		m_VTable( 
-			EnumeratorOperation::PostDecrement,
+			EEnumeratorOperation::PostDecrement,
 			m_Iterator,
 			&Result, 
 			( uintptr_t )&Table,
@@ -706,7 +706,7 @@ public:
 		if ( a_Offset < 0 )
 		{
 			m_VTable(
-				EnumeratorOperation::Subtraction,
+				EEnumeratorOperation::Subtraction,
 				m_Iterator,
 				&Result,
 				( uintptr_t )-a_Offset,
@@ -717,7 +717,7 @@ public:
 		else
 		{
 			m_VTable(
-				EnumeratorOperation::Addition,
+				EEnumeratorOperation::Addition,
 				m_Iterator,
 				&Result,
 				( uintptr_t )a_Offset,
@@ -736,7 +736,7 @@ public:
 		if ( a_Offset < 0 )
 		{
 			m_VTable(
-				EnumeratorOperation::SubtractionEqual,
+				EEnumeratorOperation::SubtractionEqual,
 				const_cast< std::any& >( m_Iterator ),
 				0,
 				( uintptr_t )-a_Offset,
@@ -747,7 +747,7 @@ public:
 		else
 		{
 			m_VTable(
-				EnumeratorOperation::AdditionEqual,
+				EEnumeratorOperation::AdditionEqual,
 				const_cast< std::any& >( m_Iterator ),
 				0,
 				( uintptr_t )a_Offset,
@@ -769,7 +769,7 @@ public:
 		if ( a_Offset < 0 )
 		{
 			m_VTable(
-				EnumeratorOperation::Addition,
+				EEnumeratorOperation::Addition,
 				m_Iterator,
 				&Result,
 				( uintptr_t )-a_Offset,
@@ -780,7 +780,7 @@ public:
 		else
 		{
 			m_VTable(
-				EnumeratorOperation::Subtraction,
+				EEnumeratorOperation::Subtraction,
 				m_Iterator,
 				&Result,
 				( uintptr_t )a_Offset,
@@ -799,7 +799,7 @@ public:
 		if ( a_Offset < 0 )
 		{
 			m_VTable(
-				EnumeratorOperation::AdditionEqual,
+				EEnumeratorOperation::AdditionEqual,
 				m_Iterator,
 				0,
 				( uintptr_t )-a_Offset,
@@ -810,7 +810,7 @@ public:
 		else
 		{
 			m_VTable(
-				EnumeratorOperation::SubtractionEqual,
+				EEnumeratorOperation::SubtractionEqual,
 				m_Iterator,
 				0,
 				( uintptr_t )a_Offset,
@@ -830,7 +830,7 @@ public:
 		DifferenceType Difference;
 
 		m_VTable(
-			EnumeratorOperation::Difference,
+			EEnumeratorOperation::Difference,
 			m_Iterator,
 			&a_Enumerator.m_Iterator,
 			( uintptr_t )m_Enumerable,
@@ -848,7 +848,7 @@ public:
 		PointerType Result;
 
 		m_VTable(
-			EnumeratorOperation::Dereference,
+			EEnumeratorOperation::Dereference,
 			m_Iterator,
 			0,
 			0,
@@ -866,7 +866,7 @@ public:
 		PointerType Result;
 
 		m_VTable(
-			EnumeratorOperation::Arrow,
+			EEnumeratorOperation::Arrow,
 			m_Iterator,
 			0,
 			0,
@@ -883,7 +883,7 @@ public:
 		_ASSERT_EXPR( m_Iterator.type() == a_Enumerator.m_Iterator.type(), ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS );
 
 		return m_VTable( 
-			EnumeratorOperation::Greater, 
+			EEnumeratorOperation::Greater, 
 			m_Iterator,
 			&a_Enumerator.m_Iterator,
 			0, 
@@ -898,7 +898,7 @@ public:
 		_ASSERT_EXPR( m_Iterator.type() == a_Enumerator.m_Iterator.type(), ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS );
 
 		return m_VTable(
-			EnumeratorOperation::GreaterEqual,
+			EEnumeratorOperation::GreaterEqual,
 			m_Iterator,
 			&a_Enumerator.m_Iterator,
 			0,
@@ -913,7 +913,7 @@ public:
 		_ASSERT_EXPR( m_Iterator.type() == a_Enumerator.m_Iterator.type(), ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS );
 
 		return m_VTable(
-			EnumeratorOperation::Lesser,
+			EEnumeratorOperation::Lesser,
 			m_Iterator,
 			&a_Enumerator.m_Iterator,
 			0,
@@ -928,7 +928,7 @@ public:
 		_ASSERT_EXPR( m_Iterator.type() == a_Enumerator.m_Iterator.type(), ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS );
 
 		return m_VTable(
-			EnumeratorOperation::LesserEqual,
+			EEnumeratorOperation::LesserEqual,
 			m_Iterator,
 			&a_Enumerator.m_Iterator,
 			0,
@@ -944,7 +944,7 @@ public:
 		PointerType Result;
 
 		m_VTable(
-			EnumeratorOperation::Index,
+			EEnumeratorOperation::Index,
 			m_Iterator,
 			0,
 			( uintptr_t )( uint64_t )a_Offset,
@@ -961,7 +961,7 @@ public:
 		_ASSERT_EXPR( m_Iterator.type() == a_Enumerator.m_Iterator.type(), ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS );
 
 		return m_VTable(
-			EnumeratorOperation::Equal,
+			EEnumeratorOperation::Equal,
 			m_Iterator,
 			&a_Enumerator.m_Iterator,
 			0,
@@ -976,7 +976,7 @@ public:
 		_ASSERT_EXPR( m_Iterator.type() == a_Enumerator.m_Iterator.type(), ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS );
 
 		return m_VTable(
-			EnumeratorOperation::Unequal,
+			EEnumeratorOperation::Unequal,
 			m_Iterator,
 			&a_Enumerator.m_Iterator,
 			0,
@@ -1006,24 +1006,24 @@ private:
 	template < class > friend class Enumerable;
 
 	template < typename It, bool _Reversed >
-	static bool Operator( EnumeratorOperation a_Operation, std::any& a_Iterator0, std::any* a_Iterator1, uintptr_t a_Arg0, uintptr_t a_Arg1, uintptr_t a_Arg2 )
+	static bool Operator( EEnumeratorOperation a_Operation, std::any& a_Iterator0, std::any* a_Iterator1, uintptr_t a_Arg0, uintptr_t a_Arg1, uintptr_t a_Arg2 )
 	{
 		_ASSERT_EXPR( a_Iterator0.has_value(), "Cannot perform an operation on an empty enumerator." );
 		_ASSERT_EXPR( std::is_forward_iterator_v< It >, "Iterator type must be at least forward iterator." );
 
 		switch ( a_Operation )
 		{
-		case EnumeratorOperation::Reverse:
+		case EEnumeratorOperation::Reverse:
 		{
 			*( VTableType* )a_Arg0 = Operator< It, !_Reversed >;
 			break;
 		}
-		case EnumeratorOperation::IsReversed:
+		case EEnumeratorOperation::IsReversed:
 		{
 			return _Reversed;
 			break;
 		}
-		case EnumeratorOperation::PreIncrement:
+		case EEnumeratorOperation::PreIncrement:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1036,7 +1036,7 @@ private:
 
 			break;
 		}
-		case EnumeratorOperation::PostIncrement:
+		case EEnumeratorOperation::PostIncrement:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1053,7 +1053,7 @@ private:
 
 			break;
 		}
-		case EnumeratorOperation::PreDecrement:
+		case EEnumeratorOperation::PreDecrement:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1066,7 +1066,7 @@ private:
 
 			break;
 		}
-		case EnumeratorOperation::PostDecrement:
+		case EEnumeratorOperation::PostDecrement:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1083,7 +1083,7 @@ private:
 
 			break;
 		}
-		case EnumeratorOperation::Addition:
+		case EEnumeratorOperation::Addition:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1100,7 +1100,7 @@ private:
 
 			break;
 		}
-		case EnumeratorOperation::AdditionEqual:
+		case EEnumeratorOperation::AdditionEqual:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1113,7 +1113,7 @@ private:
 
 			break;
 		}
-		case EnumeratorOperation::Subtraction:
+		case EEnumeratorOperation::Subtraction:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1130,7 +1130,7 @@ private:
 
 			break;
 		}
-		case EnumeratorOperation::SubtractionEqual:
+		case EEnumeratorOperation::SubtractionEqual:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1143,7 +1143,7 @@ private:
 
 			break;
 		}
-		case EnumeratorOperation::Difference:
+		case EEnumeratorOperation::Difference:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1156,7 +1156,7 @@ private:
 
 			break;
 		}
-		case EnumeratorOperation::Dereference:
+		case EEnumeratorOperation::Dereference:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1170,7 +1170,7 @@ private:
 			
 			break;
 		}
-		case EnumeratorOperation::Arrow:
+		case EEnumeratorOperation::Arrow:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1184,7 +1184,7 @@ private:
 
 			break;
 		}
-		case EnumeratorOperation::Greater:
+		case EEnumeratorOperation::Greater:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1195,7 +1195,7 @@ private:
 				return Operator_Lesser< It >( ( It& )a_Iterator0, ( It& )*a_Iterator1, ( const EnumerableType* )a_Arg0 );
 			}
 		}
-		case EnumeratorOperation::GreaterEqual:
+		case EEnumeratorOperation::GreaterEqual:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1206,7 +1206,7 @@ private:
 				return Operator_LesserEqual< It >( ( It& )a_Iterator0, ( It& )*a_Iterator1, ( const EnumerableType* )a_Arg0 );
 			}
 		}
-		case EnumeratorOperation::Lesser:
+		case EEnumeratorOperation::Lesser:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1217,7 +1217,7 @@ private:
 				return Operator_Greater< It >( ( It& )a_Iterator0, ( It& )*a_Iterator1, ( const EnumerableType* )a_Arg0 );
 			}
 		}
-		case EnumeratorOperation::LesserEqual:
+		case EEnumeratorOperation::LesserEqual:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1228,15 +1228,15 @@ private:
 				return Operator_GreaterEqual< It >( ( It& )a_Iterator0, ( It& )*a_Iterator1, ( const EnumerableType* )a_Arg0 );
 			}
 		}
-		case EnumeratorOperation::Equal:
+		case EEnumeratorOperation::Equal:
 		{
 			return Operator_Equal< It >( ( It& )a_Iterator0, ( It& )*a_Iterator1 );
 		}
-		case EnumeratorOperation::Unequal:
+		case EEnumeratorOperation::Unequal:
 		{
 			return Operator_Inequal< It >( ( It& )a_Iterator0, ( It& )*a_Iterator1 );
 		}
-		case EnumeratorOperation::Index:
+		case EEnumeratorOperation::Index:
 		{
 			if constexpr ( !_Reversed )
 			{
@@ -1395,6 +1395,131 @@ protected:
 	virtual T& IAt( size_t a_Index ) = 0;
 };
 
+#pragma once
+#include "Container.hpp"
+
+template < typename T >
+using SpanIterator = RandomAccessIterator< T* >;
+
+template < typename T >
+using SpanCIterator = RandomAccessIterator< const T* >;
+
+template < typename T >
+using SpanRIterator = RandomAccessIterator< std::reverse_iterator< T* > >;
+
+template < typename T >
+using SpanCRIterator = RandomAccessIterator< std::reverse_iterator< const T* > >;
+
+template < typename T >
+class Span : public IContiguousCollection< T >
+{
+public:
+
+	using ValueType = T;
+	using SizeType = size_t;
+	using DifferenceType = std::ptrdiff_t;
+	using BaseType = IContiguousCollection< T >;
+
+	using IteratorType = SpanIterator< T >;
+	using CIteratorType = SpanCIterator< T >;
+	using RIteratorType = SpanRIterator< T >;
+	using CRIteratorType = SpanCRIterator< T >;
+
+	using EnumeratorType = typename BaseType::EnumeratorType;
+	using CEnumeratorType = typename BaseType::CEnumeratorType;
+	using EnumerableType = typename BaseType::EnumerableType;
+	using CEnumerableType = typename BaseType::CEnumerableType;
+
+	constexpr Span() = default;
+	constexpr Span( const Span& ) = default;
+	constexpr Span( Span&& ) = default;
+	constexpr Span( T* a_Data, size_t a_Size );
+
+	template < size_t _Size >
+	constexpr Span( T( &a_Array )[ _Size ] );
+
+	template < size_t _Size >
+	constexpr Span( T( *a_Array )[ _Size ] );
+
+	Span( IContiguousCollection< T >& a_ContiguousCollection );
+
+	IteratorType Begin() { return IteratorType( m_Data ); }
+	CIteratorType Begin() const { return CIteratorType( m_Data ); }
+	CIteratorType CBegin() const { return CIteratorType( m_Data ); }
+	RIteratorType RBegin() { return RIteratorType( std::reverse_iterator< T* >( m_Data + m_Size ) ); }
+	CRIteratorType RBegin() const { return CRIteratorType( std::reverse_iterator< const T* >( m_Data + m_Size ) ); }
+	CRIteratorType CRBegin() const { return CRIteratorType( std::reverse_iterator< const T* >( m_Data + m_Size ) ); }
+	IteratorType End() { return IteratorType( m_Data + m_Size ); }
+	CIteratorType End() const { return CIteratorType( m_Data + m_Size ); }
+	CIteratorType CEnd() const { return CIteratorType( m_Data + m_Size ); }
+	RIteratorType REnd() { return RIteratorType( std::reverse_iterator< T* >( m_Data ) ); }
+	CRIteratorType REnd() const { return CRIteratorType( std::reverse_iterator< const T* >( m_Data ) ); }
+	CRIteratorType CREnd() const { return CRIteratorType( std::reverse_iterator< const T* >( m_Data ) ); }
+
+	constexpr SizeType Size() const { return m_Size; }
+	constexpr SizeType MaxSize() const { return -1; }
+
+	constexpr const T& operator[]( size_t a_Offset ) const { return m_Data[ a_Offset ]; }
+	constexpr T& operator[]( size_t a_Offset ) { return m_Data[ a_Offset ]; }
+
+	// Gotta implement more functions here.
+
+protected:
+
+	EnumerableType IToEnumerable() { return EnumerableType( Size(), Begin(), End() ); }
+	size_t ISize() const { return Size(); }
+	size_t IMaxSize() const { return MaxSize(); }
+	EnumeratorType IBegin() { return Begin(); }
+	EnumeratorType IEnd() { return End(); }
+	EnumeratorType IRBegin() { return RBegin(); }
+	EnumeratorType IREnd() { return REnd(); }
+	T* IData() { return m_Data; }
+	T& IAt( size_t a_Index ) { return m_Data[ a_Index ]; }
+
+private:
+
+	T* m_Data;
+	size_t m_Size;
+};
+
+#pragma region SpanDefinitions
+template < typename T >
+constexpr Span< T >::Span( T* a_Data, size_t a_Size )
+	: m_Data( a_Data )
+	, m_Size( a_Size )
+{}
+
+template < typename T >
+template < size_t _Size >
+constexpr Span< T >::Span( T( &a_Array )[ _Size ] )
+	: m_Data( a_Array )
+	, m_Size( _Size )
+{}
+
+template < typename T >
+template < size_t _Size >
+constexpr Span< T >::Span( T( *a_Array )[ _Size ] )
+	: m_Data( *a_Array )
+	, m_Size( _Size )
+{}
+
+template < typename T >
+Span< T >::Span( IContiguousCollection< T >& a_ContiguousCollection )
+	: m_Data( a_ContiguousCollection.Data() )
+	, m_Size( a_ContiguousCollection.Size() )
+{}
+#pragma endregion
+
+template < typename T, typename _Allocator = std::allocator< T > >
+class Collection : public Span< T >
+{
+public:
+
+	Collection() = default;
+	Collection( const Collection& ) = default;
+};
+
+
 template < typename T >
 class Enumerable : public ICollection< T >
 {
@@ -1482,6 +1607,7 @@ private:
 	IteratorType m_End;
 };
 
+#pragma region EnumeratorDefinitions
 template < typename T >
 template < typename It, typename >
 Enumerator< T >& Enumerator< T >::operator=( It& a_Iterator )
@@ -1903,6 +2029,7 @@ decltype( auto ) Enumerator< T >::Operator_Inequal( It& a_Left, It& a_Right )
 {
 	return a_Left != a_Right;
 }
+#pragma endregion
 
 namespace std
 {
@@ -1944,6 +2071,19 @@ namespace std
 	template < typename T > auto rend( IContiguousCollection< T >& a_Collection ) { return a_Collection.REnd(); }
 	template < typename T > auto rend( const IContiguousCollection< T >& a_Collection ) { return a_Collection.REnd(); }
 	template < typename T > auto crend( const IContiguousCollection< T >& a_Collection ) { return a_Collection.CREnd(); }
+
+	template < typename T > auto begin( Span< T >& a_Span ) { return a_Span.Begin(); }
+	template < typename T > auto begin( const Span< T >& a_Span ) { return a_Span.Begin(); }
+	template < typename T > auto cbegin( const Span< T >& a_Span ) { return a_Span.CBegin(); }
+	template < typename T > auto rbegin( Span< T >& a_Span ) { return a_Span.RBegin(); }
+	template < typename T > auto rbegin( const Span< T >& a_Span ) { return a_Span.RBegin(); }
+	template < typename T > auto crbegin( const Span< T >& a_Span ) { return a_Span.CRBegin(); }
+	template < typename T > auto end( Span< T >& a_Span ) { return a_Span.End(); }
+	template < typename T > auto end( const Span< T >& a_Span ) { return a_Span.End(); }
+	template < typename T > auto cend( const Span< T >& a_Span ) { return a_Span.CEnd(); }
+	template < typename T > auto rend( Span< T >& a_Span ) { return a_Span.REnd(); }
+	template < typename T > auto rend( const Span< T >& a_Span ) { return a_Span.REnd(); }
+	template < typename T > auto crend( const Span< T >& a_Span ) { return a_Span.CREnd(); }
 
 	template < typename T >
 	struct iterator_traits< IForwardIterator< T > >
@@ -2015,20 +2155,3 @@ namespace std
 		using pointer = T*;
 	};
 }
-
-//template < typename T >
-//bool ICollection< T >::Contains( const T& a_Value ) const
-//{
-//	auto& Iter = Begin().AsIterator();
-//	size_t Length = Size();
-//
-//	for ( size_t i = 0; i < Length; ++i, ++Iter )
-//	{
-//		if ( *Iter == a_Value )
-//		{
-//			return true;
-//		}
-//	}
-//
-//	return false;
-//}

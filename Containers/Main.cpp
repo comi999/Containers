@@ -374,8 +374,9 @@ int main()
 	std::vector< int > ints = { 1, 2, 3, 4 };
 	Span< int > span( ints.data(), ints.size() );
 	auto val = span.At( 2 );
+	auto enumer = span.ToCEnumerable();
 	
-	for ( auto& vals : span )
+	for ( auto& vals : enumer )
 	{
 		std::cout << vals << std::endl;
 	}

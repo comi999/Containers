@@ -14,11 +14,14 @@ using ArrayRIterator = RandomAccessIterator< typename std::array< T, _Size >::re
 template < typename T, size_t _Size >
 using ArrayCRIterator = RandomAccessIterator< typename std::array< T, _Size >::const_reverse_iterator >;
 
-template < typename T >
+template < typename T, size_t _Size >
 class Array : public IContiguousCollection< T >
 {
 public:
 
+	using ValueType = T;
+	using SizeType = size_t;
+	using DifferenceType = std::ptrdiff_t;
 	using BaseType = IContiguousCollection< T >;
 	using UnderlyingType = std::array< T, _Size >;
 	using IteratorType = ArrayIterator< T, _Size >;
