@@ -14,7 +14,7 @@ using ArrayRIterator = RandomAccessIterator< typename std::array< T, _Size >::re
 template < typename T, size_t _Size >
 using ArrayCRIterator = RandomAccessIterator< typename std::array< T, _Size >::const_reverse_iterator >;
 
-template < typename T, size_t _Size >
+template < typename T >
 class Array : public IContiguousCollection< T >
 {
 public:

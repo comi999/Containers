@@ -135,6 +135,7 @@
     <ClInclude Include="Container.hpp" />
     <ClInclude Include="FunctionTraits.hpp" />
     <ClInclude Include="Invoker.hpp" />
+    <ClInclude Include="Span.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Containers.natvis" />

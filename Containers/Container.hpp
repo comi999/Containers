@@ -1482,79 +1482,6 @@ private:
 	IteratorType m_End;
 };
 
-namespace std
-{
-	template < typename T >
-	struct iterator_traits< IForwardIterator< T > >
-	{
-		using iterator_category = std::forward_iterator_tag;
-		using difference_type = std::ptrdiff_t;
-		using value_type = T;
-		using reference = T&;
-		using pointer = T*;
-	};
-
-	template < typename T >
-	struct iterator_traits< IBidirectionalIterator< T > >
-	{
-		using iterator_category = std::bidirectional_iterator_tag;
-		using difference_type = std::ptrdiff_t;
-		using value_type = T;
-		using reference = T&;
-		using pointer = T*;
-	};
-
-	template < typename T >
-	struct iterator_traits< IRandomAccessIterator< T > >
-	{
-		using iterator_category = std::random_access_iterator_tag;
-		using difference_type = std::ptrdiff_t;
-		using value_type = T;
-		using reference = T&;
-		using pointer = T*;
-	};
-
-	template < typename T >
-	struct iterator_traits< ForwardIterator< T > >
-	{
-		using iterator_category = std::forward_iterator_tag;
-		using difference_type = typename std::iterator_traits< T >::difference_type;
-		using value_type = typename std::iterator_traits< T >::value_type;
-		using reference = typename std::iterator_traits< T >::reference;
-		using pointer = typename std::iterator_traits< T >::pointer;
-	};
-
-	template < typename T >
-	struct iterator_traits< BidirectionalIterator< T > >
-	{
-		using iterator_category = std::bidirectional_iterator_tag;
-		using difference_type = typename std::iterator_traits< T >::difference_type;
-		using value_type = typename std::iterator_traits< T >::value_type;
-		using reference = typename std::iterator_traits< T >::reference;
-		using pointer = typename std::iterator_traits< T >::pointer;
-	};
-
-	template < typename T >
-	struct iterator_traits< RandomAccessIterator< T > >
-	{
-		using iterator_category = std::random_access_iterator_tag;
-		using difference_type = typename std::iterator_traits< T >::difference_type;
-		using value_type = typename std::iterator_traits< T >::value_type;
-		using reference = typename std::iterator_traits< T >::reference;
-		using pointer = typename std::iterator_traits< T >::pointer;
-	};
-
-	template < typename T >
-	struct iterator_traits< Enumerator< T > >
-	{
-		using iterator_category = std::random_access_iterator_tag;
-		using difference_type = std::ptrdiff_t;
-		using value_type = T;
-		using reference = T&;
-		using pointer = T*;
-	};
-}
-
 template < typename T >
 template < typename It, typename >
 Enumerator< T >& Enumerator< T >::operator=( It& a_Iterator )
@@ -1991,6 +1918,102 @@ namespace std
 	template < typename T > auto rend( Enumerable< T >& a_Enumerable ) { return a_Enumerable.REnd(); }
 	template < typename T > auto rend( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.REnd(); }
 	template < typename T > auto crend( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.CREnd(); }
+
+	template < typename T > auto begin( ICollection< T >& a_Collection ) { return a_Collection.Begin(); }
+	template < typename T > auto begin( const ICollection< T >& a_Collection ) { return a_Collection.Begin(); }
+	template < typename T > auto cbegin( const ICollection< T >& a_Collection ) { return a_Collection.CBegin(); }
+	template < typename T > auto rbegin( ICollection< T >& a_Collection ) { return a_Collection.RBegin(); }
+	template < typename T > auto rbegin( const ICollection< T >& a_Collection ) { return a_Collection.RBegin(); }
+	template < typename T > auto crbegin( const ICollection< T >& a_Collection ) { return a_Collection.CRBegin(); }
+	template < typename T > auto end( ICollection< T >& a_Collection ) { return a_Collection.End(); }
+	template < typename T > auto end( const ICollection< T >& a_Collection ) { return a_Collection.End(); }
+	template < typename T > auto cend( const ICollection< T >& a_Collection ) { return a_Collection.CEnd(); }
+	template < typename T > auto rend( ICollection< T >& a_Collection ) { return a_Collection.REnd(); }
+	template < typename T > auto rend( const ICollection< T >& a_Collection ) { return a_Collection.REnd(); }
+	template < typename T > auto crend( const ICollection< T >& a_Collection ) { return a_Collection.CREnd(); }
+
+	template < typename T > auto begin( IContiguousCollection< T >& a_Collection ) { return a_Collection.Begin(); }
+	template < typename T > auto begin( const IContiguousCollection< T >& a_Collection ) { return a_Collection.Begin(); }
+	template < typename T > auto cbegin( const IContiguousCollection< T >& a_Collection ) { return a_Collection.CBegin(); }
+	template < typename T > auto rbegin( IContiguousCollection< T >& a_Collection ) { return a_Collection.RBegin(); }
+	template < typename T > auto rbegin( const IContiguousCollection< T >& a_Collection ) { return a_Collection.RBegin(); }
+	template < typename T > auto crbegin( const IContiguousCollection< T >& a_Collection ) { return a_Collection.CRBegin(); }
+	template < typename T > auto end( IContiguousCollection< T >& a_Collection ) { return a_Collection.End(); }
+	template < typename T > auto end( const IContiguousCollection< T >& a_Collection ) { return a_Collection.End(); }
+	template < typename T > auto cend( const IContiguousCollection< T >& a_Collection ) { return a_Collection.CEnd(); }
+	template < typename T > auto rend( IContiguousCollection< T >& a_Collection ) { return a_Collection.REnd(); }
+	template < typename T > auto rend( const IContiguousCollection< T >& a_Collection ) { return a_Collection.REnd(); }
+	template < typename T > auto crend( const IContiguousCollection< T >& a_Collection ) { return a_Collection.CREnd(); }
+
+	template < typename T >
+	struct iterator_traits< IForwardIterator< T > >
+	{
+		using iterator_category = std::forward_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = T;
+		using reference = T&;
+		using pointer = T*;
+	};
+
+	template < typename T >
+	struct iterator_traits< IBidirectionalIterator< T > >
+	{
+		using iterator_category = std::bidirectional_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = T;
+		using reference = T&;
+		using pointer = T*;
+	};
+
+	template < typename T >
+	struct iterator_traits< IRandomAccessIterator< T > >
+	{
+		using iterator_category = std::random_access_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = T;
+		using reference = T&;
+		using pointer = T*;
+	};
+
+	template < typename T >
+	struct iterator_traits< ForwardIterator< T > >
+	{
+		using iterator_category = std::forward_iterator_tag;
+		using difference_type = typename std::iterator_traits< T >::difference_type;
+		using value_type = typename std::iterator_traits< T >::value_type;
+		using reference = typename std::iterator_traits< T >::reference;
+		using pointer = typename std::iterator_traits< T >::pointer;
+	};
+
+	template < typename T >
+	struct iterator_traits< BidirectionalIterator< T > >
+	{
+		using iterator_category = std::bidirectional_iterator_tag;
+		using difference_type = typename std::iterator_traits< T >::difference_type;
+		using value_type = typename std::iterator_traits< T >::value_type;
+		using reference = typename std::iterator_traits< T >::reference;
+		using pointer = typename std::iterator_traits< T >::pointer;
+	};
+
+	template < typename T >
+	struct iterator_traits< RandomAccessIterator< T > >
+	{
+		using iterator_category = std::random_access_iterator_tag;
+		using difference_type = typename std::iterator_traits< T >::difference_type;
+		using value_type = typename std::iterator_traits< T >::value_type;
+		using reference = typename std::iterator_traits< T >::reference;
+		using pointer = typename std::iterator_traits< T >::pointer;
+	};
+
+	template < typename T >
+	struct iterator_traits< Enumerator< T > >
+	{
+		using iterator_category = std::random_access_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = T;
+		using reference = T&;
+		using pointer = T*;
+	};
 }
 
 //template < typename T >
