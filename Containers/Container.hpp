@@ -9,6 +9,7 @@
 #define ENUMERATOR_ERROR_MESSAGE_BOUNDING_ENUMERABLE_RANDOM_ACCESS "Non-random access iterators require a bounding Enumerable."
 #define ENUMERATOR_ERROR_MESSAGE_OUT_OF_RANGE "Iterator outside of bounding range."
 #define ENUMERATOR_ERROR_MESSAGE_NO_VTABLE "No virtual table set."
+#define ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS "Underlying iterators are incompatible and can not be compared."
 
 template < typename T >
 class Enumerator;
@@ -147,6 +148,17 @@ public:
 	constexpr ForwardIterator( const ForwardIterator& ) = default;
 	constexpr ForwardIterator( ForwardIterator&& ) = default;
 	constexpr ForwardIterator( const UnderlyingType& a_Underlying ) : m_Underlying( a_Underlying ) {}
+
+	template < typename It, typename = std::enable_if_t< std::is_constructible_v< _Underlying, It > > >
+	constexpr ForwardIterator( const ForwardIterator< It >& a_Iterator )
+		: m_Underlying( a_Iterator.m_Underlying )
+	{}
+
+	template < typename It, typename = std::enable_if_t< std::is_constructible_v< _Underlying, It&& > > >
+	constexpr ForwardIterator( ForwardIterator< It >&& a_Iterator )
+		: m_Underlying( std::move( a_Iterator.m_Underlying ) )
+	{}
+
 	constexpr ForwardIterator& operator=( const ForwardIterator& ) = default;
 	constexpr ForwardIterator& operator=( ForwardIterator&& ) = default;
 	constexpr ReferenceType operator*() const { return *m_Underlying; }
@@ -164,6 +176,10 @@ protected:
 	ReferenceType IDereference() const { return this->operator*(); }
 	PointerType IArrow() const { return this->operator->(); }
 	void IIncrement() { ( void )++m_Underlying; }
+
+private:
+
+	template < class > friend class ForwardIterator;
 
 	UnderlyingType m_Underlying;
 };
@@ -188,6 +204,17 @@ public:
 	constexpr BidirectionalIterator( const BidirectionalIterator& ) = default;
 	constexpr BidirectionalIterator( BidirectionalIterator&& ) = default;
 	constexpr BidirectionalIterator( const UnderlyingType& a_Underlying ) : m_Underlying( a_Underlying ) {}
+
+	template < typename It, typename = std::enable_if_t< std::is_constructible_v< _Underlying, It > > >
+	constexpr BidirectionalIterator( const BidirectionalIterator< It >& a_Iterator )
+		: m_Underlying( a_Iterator.m_Underlying )
+	{}
+
+	template < typename It, typename = std::enable_if_t< std::is_constructible_v< _Underlying, It&& > > >
+	constexpr BidirectionalIterator( BidirectionalIterator< It >&& a_Iterator )
+		: m_Underlying( std::move( a_Iterator.m_Underlying ) )
+	{}
+
 	constexpr BidirectionalIterator& operator=( const BidirectionalIterator& ) = default;
 	constexpr BidirectionalIterator& operator=( BidirectionalIterator&& ) = default;
 	constexpr ReferenceType operator*() const { return *m_Underlying; }
@@ -208,6 +235,10 @@ protected:
 	PointerType IArrow() const { return this->operator->(); }
 	void IIncrement() { ( void )++m_Underlying; }
 	void IDecrement() { ( void )--m_Underlying; }
+
+private:
+
+	template < class > friend class BidirectionalIterator;
 
 	UnderlyingType m_Underlying;
 };
@@ -232,6 +263,17 @@ public:
 	constexpr RandomAccessIterator( const RandomAccessIterator& ) = default;
 	constexpr RandomAccessIterator( RandomAccessIterator&& ) = default;
 	constexpr RandomAccessIterator( const UnderlyingType& a_Underlying ) : m_Underlying( a_Underlying ) {}
+
+	template < typename It, typename = std::enable_if_t< std::is_constructible_v< _Underlying, It > > >
+	constexpr RandomAccessIterator( const RandomAccessIterator< It >& a_Iterator )
+		: m_Underlying( a_Iterator.m_Underlying )
+	{}
+
+	template < typename It, typename = std::enable_if_t< std::is_constructible_v< _Underlying, It&& > > >
+	constexpr RandomAccessIterator( RandomAccessIterator< It >&& a_Iterator )
+		: m_Underlying( std::move( a_Iterator.m_Underlying ) )
+	{}
+
 	constexpr RandomAccessIterator& operator=( const RandomAccessIterator& ) = default;
 	constexpr RandomAccessIterator& operator=( RandomAccessIterator&& ) = default;
 	constexpr ReferenceType operator*() const { return *m_Underlying; }
@@ -264,6 +306,10 @@ protected:
 	void IDecrement() { ( void )--m_Underlying; }
 	void ISeek( int64_t a_Offset ) { ( void )( m_Underlying += a_Offset ); }
 	ReferenceType IAt( DifferenceType a_Offset ) const { return m_Underlying[ a_Offset ]; }
+
+private:
+
+	template < class > friend class RandomAccessIterator;
 
 	UnderlyingType m_Underlying;
 };
@@ -779,6 +825,7 @@ public:
 	DifferenceType operator-( const Enumerator& a_Enumerator ) const
 	{
 		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
+		_ASSERT_EXPR( m_Iterator.type() == a_Enumerator.m_Iterator.type(), ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS );
 
 		DifferenceType Difference;
 
@@ -833,6 +880,7 @@ public:
 	bool operator>( const Enumerator< T >& a_Enumerator ) const
 	{
 		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
+		_ASSERT_EXPR( m_Iterator.type() == a_Enumerator.m_Iterator.type(), ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS );
 
 		return m_VTable( 
 			EnumeratorOperation::Greater, 
@@ -847,6 +895,7 @@ public:
 	bool operator>=( const Enumerator< T >& a_Enumerator ) const
 	{
 		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
+		_ASSERT_EXPR( m_Iterator.type() == a_Enumerator.m_Iterator.type(), ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS );
 
 		return m_VTable(
 			EnumeratorOperation::GreaterEqual,
@@ -861,6 +910,7 @@ public:
 	bool operator<( const Enumerator< T >& a_Enumerator ) const
 	{
 		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
+		_ASSERT_EXPR( m_Iterator.type() == a_Enumerator.m_Iterator.type(), ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS );
 
 		return m_VTable(
 			EnumeratorOperation::Lesser,
@@ -875,6 +925,7 @@ public:
 	bool operator<=( const Enumerator< T >& a_Enumerator ) const
 	{
 		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
+		_ASSERT_EXPR( m_Iterator.type() == a_Enumerator.m_Iterator.type(), ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS );
 
 		return m_VTable(
 			EnumeratorOperation::LesserEqual,
@@ -907,6 +958,7 @@ public:
 	bool operator==( const Enumerator< T >& a_Enumerator ) const
 	{
 		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
+		_ASSERT_EXPR( m_Iterator.type() == a_Enumerator.m_Iterator.type(), ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS );
 
 		return m_VTable(
 			EnumeratorOperation::Equal,
@@ -921,6 +973,7 @@ public:
 	bool operator!=( const Enumerator< T >& a_Enumerator ) const
 	{
 		_ASSERT_EXPR( m_VTable, ENUMERATOR_ERROR_MESSAGE_NO_VTABLE );
+		_ASSERT_EXPR( m_Iterator.type() == a_Enumerator.m_Iterator.type(), ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS );
 
 		return m_VTable(
 			EnumeratorOperation::Unequal,
@@ -1226,9 +1279,6 @@ private:
 };
 
 template < typename T >
-class Collection;
-
-template < typename T >
 class ICollection
 {
 public:
@@ -1263,10 +1313,10 @@ public:
 	const T* FindLast( const Predicate< const T& >& a_Predicate ) const { return const_cast< ICollection* >( this )->FindLast( a_Predicate ); }
 	T* FindLast( const T& a_Value );
 	T* FindLast( const Predicate< const T& >& a_Predicate );
-	Collection< const T* > FindAll( const T& a_Value ) const;
-	Collection< const T* > FindAll( const Predicate< const T& >& a_Predicate ) const;
-	Collection< T* > FindAll( const T& a_Value );
-	Collection< T* > FindAll( const Predicate< const T& >& a_Predicate );
+	//Collection< const T* > FindAll( const T& a_Value ) const;
+	//Collection< const T* > FindAll( const Predicate< const T& >& a_Predicate ) const;
+	//Collection< T* > FindAll( const T& a_Value );
+	//Collection< T* > FindAll( const Predicate< const T& >& a_Predicate );
 
 	template < typename U = T >
 	U Aggregate( const Invoker< U, const T&, const U& >& a_Aggregator ) const;
@@ -1286,11 +1336,11 @@ public:
 	size_t Count( const T& a_Value ) const;
 	size_t Count( const Predicate< const T& >& a_Predicate ) const;
 
-	Collection< const T* > Distinct() const;
-	Collection< const T* > Distinct( const EqualityComparer< const T& >& a_EqualityComparer ) const;
+	//Collection< const T* > Distinct() const;
+	//Collection< const T* > Distinct( const EqualityComparer< const T& >& a_EqualityComparer ) const;
 
-	Collection< T* > Distinct();
-	Collection< T* > Distinct( const EqualityComparer< const T& >& a_EqualityComparer );
+	//Collection< T* > Distinct();
+	//Collection< T* > Distinct( const EqualityComparer< const T& >& a_EqualityComparer );
 
 protected:
 
@@ -1439,7 +1489,7 @@ namespace std
 	{
 		using iterator_category = std::forward_iterator_tag;
 		using difference_type = std::ptrdiff_t;
-		using value_type = std::decay_t< T >;
+		using value_type = T;
 		using reference = T&;
 		using pointer = T*;
 	};
@@ -1449,7 +1499,7 @@ namespace std
 	{
 		using iterator_category = std::bidirectional_iterator_tag;
 		using difference_type = std::ptrdiff_t;
-		using value_type = std::decay_t< T >;
+		using value_type = T;
 		using reference = T&;
 		using pointer = T*;
 	};
@@ -1459,7 +1509,7 @@ namespace std
 	{
 		using iterator_category = std::random_access_iterator_tag;
 		using difference_type = std::ptrdiff_t;
-		using value_type = std::decay_t< T >;
+		using value_type = T;
 		using reference = T&;
 		using pointer = T*;
 	};
@@ -1499,7 +1549,7 @@ namespace std
 	{
 		using iterator_category = std::random_access_iterator_tag;
 		using difference_type = std::ptrdiff_t;
-		using value_type = std::decay_t< T >;
+		using value_type = T;
 		using reference = T&;
 		using pointer = T*;
 	};

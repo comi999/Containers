@@ -1,4 +1,6 @@
 #include <iostream>
+#include <vector>
+#include <memory>
 
 // All containers should inherit from IContainer<T>
 // IContainer<T> should implement a way to get elements through virtualization
@@ -8,7 +10,153 @@
 // IContainer should only be an interface, but it needs to somehow also be able to return primitive iterators.
 // IContainer::Begin should return an Enumerator which is type erased. The implementation of constructing the Enumerator should be in the implementing container class.
 
+// I need to enforce template types for containers to not be references.
+// Collection<T> needs to be properly fleshed out.
+// Need to make two variants of each type of iterator adapter for const and non-const so that we respect constness properly.
+// Need to rename the adapters to be something better.
+
 #include "Array.hpp"
+
+template < typename T >
+using CollectionIterator = T*;
+
+// This needs to be completed properly.
+template < typename T, typename _Allocator = std::allocator< T > >
+class Collection : public IContiguousCollection< T >
+{
+public:
+
+	using BaseType = IContiguousCollection< T >;
+	using AllocatorType = _Allocator;
+	using IteratorType = CollectionIterator< T >;
+	using CIteratorType = CollectionIterator< const T >;
+	using RIteratorType = RandomAccessIterator< std::reverse_iterator< CollectionIterator< T > > >;
+	using CRIteratorType = RandomAccessIterator< std::reverse_iterator< CollectionIterator< const T > > >;
+	using EnumeratorType = typename BaseType::EnumeratorType;
+	using CEnumeratorType = typename BaseType::CEnumeratorType;
+	using EnumerableType = typename BaseType::EnumerableType;
+	using CEnumerableType = typename BaseType::CEnumerableType;
+
+	Collection();
+	Collection( size_t a_Capacity );
+	Collection( const Collection& a_Collection );
+	Collection( Collection&& a_Collection );
+
+private:
+
+	template < typename U >
+	static constexpr bool is_compatible_type_v = std::is_const_v< T > && std::is_same_v< std::decay_t< T >, U >;
+
+public:
+
+	template < typename U, typename = std::enable_if_t< is_compatible_type_v< U > > >
+	Collection( const Collection< U, _Allocator >& a_Collection );
+
+	template < typename U, typename = std::enable_if_t< is_compatible_type_v< U > > >
+	Collection( Collection< U, _Allocator >&& a_Collection );
+
+	~Collection();
+	void Add( const T& a_Value );
+	void Remove( size_t a_Index );
+	size_t Capacity() const { return m_Capacity; }
+	size_t Size() const { return m_Size; }
+	constexpr size_t MaxSize() const { return ( size_t )-1; }
+	const T* Data() const { return m_Data; }
+	T* Data() { return m_Data; }
+	const T& At( size_t a_Index ) const { return m_Data[ a_Index ]; }
+	T& At( size_t a_Index ) { return m_Data[ a_Index ]; }
+
+	IteratorType Begin() { return IteratorType(); }
+	CIteratorType Begin() const { return CIteratorType(); }
+	CIteratorType CBegin() const { return CIteratorType(); }
+	RIteratorType RBegin() { return RIteratorType(); }
+	CRIteratorType RBegin() const { return CRIteratorType(); }
+	CRIteratorType CRBegin() const { return CRIteratorType(); }
+
+	IteratorType End() { return IteratorType(); }
+	CIteratorType End() const { return CIteratorType(); }
+	CIteratorType CEnd() const { return CIteratorType(); }
+	RIteratorType REnd() { return RIteratorType(); }
+	CRIteratorType REnd() const { return CRIteratorType(); }
+	CRIteratorType CREnd() const { return CRIteratorType(); }
+
+protected:
+
+	EnumerableType IToEnumerable() { return EnumerableType( Size(), Begin(), End() ); }
+	size_t ISize() const { return Size(); }
+	size_t IMaxSize() const { return MaxSize(); }
+	EnumeratorType IBegin() { return Begin(); }
+	EnumeratorType IRBegin() { return RBegin(); }
+	EnumeratorType IEnd() { return End(); }
+	EnumeratorType IREnd() { return REnd(); }
+	T* IData() { return m_Data; }
+	T& IAt( size_t a_Index ) { return m_Data[ a_Index ]; }
+
+private:
+
+	T* m_Data;
+	size_t m_Capacity;
+	size_t m_Size;
+	AllocatorType m_Allocator;
+};
+
+template < typename T, typename _Allocator >
+Collection< T, _Allocator >::Collection()
+	: m_Data( nullptr )
+	, m_Size( 0 )
+	, m_Capacity( 0 )
+{}
+
+template < typename T, typename _Allocator >
+Collection< T, _Allocator >::Collection( size_t a_Capacity )
+	: m_Data( new T[ a_Capacity ] )
+	, m_Size( 0 )
+	, m_Capacity( a_Capacity )
+{}
+
+template < typename T, typename _Allocator  >
+Collection< T, _Allocator >::Collection( const Collection& a_Collection )
+{
+
+}
+
+template < typename T, typename _Allocator  >
+Collection< T, _Allocator >::Collection( Collection&& a_Collection )
+{
+
+}
+
+template < typename T, typename _Allocator  >
+template < typename U, typename >
+Collection< T, _Allocator >::Collection( const Collection< U, _Allocator >& a_Collection )
+{
+
+}
+
+template < typename T, typename _Allocator >
+template < typename U, typename >
+Collection< T, _Allocator >::Collection( Collection< U, _Allocator >&& a_Collection )
+{
+
+}
+
+template < typename T, typename _Allocator  >
+Collection< T, _Allocator >::~Collection()
+{
+
+}
+
+template < typename T, typename _Allocator  >
+void Collection< T, _Allocator >::Add( const T& a_Value )
+{
+
+}
+
+template < typename T, typename _Allocator  >
+void Collection< T, _Allocator >::Remove( size_t a_Index )
+{
+
+}
 
 template < typename T >
 class DeferredCollection;
@@ -35,7 +183,7 @@ public:
 	DeferredCollectionIterator& operator=( DeferredCollectionIterator&& ) = default;
 
 	DeferredCollectionIterator( DeferredCollection< T >* a_DeferredCollection, size_t a_Index )
-		: m_Index( a_Index )
+		: m_Index( -1 )
 		, m_Value( nullptr )
 		, m_DeferredCollection( a_DeferredCollection )
 	
@@ -60,7 +208,7 @@ protected:
 
 private:
 
-	size_t m_Index;
+	int64_t m_Index;
 	T* m_Value;
 	DeferredCollection< T >* m_DeferredCollection;
 };
@@ -169,7 +317,12 @@ void DeferredCollectionIterator< T >::IIncrement()
 
 int main()
 {
+	Collection< int > coll;
+
 	Array< int, 5 > a = { 1, 2, 3, 4, 5 };
+
+	ArrayCIterator< int, 5 > ait = a.CBegin();
+
 	ICollection< int >& ac = a;
 
 	struct State
@@ -206,7 +359,5 @@ int main()
 		} );
 
 	auto beg = dc.Begin();
-
-	auto vec = dc.ToVector();
 
 }
