@@ -32,9 +32,6 @@
     <ClInclude Include="Invoker.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Span.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Containers.natvis" />

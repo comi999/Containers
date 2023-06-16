@@ -23,6 +23,7 @@ public:
 	using SizeType = size_t;
 	using DifferenceType = std::ptrdiff_t;
 	using BaseType = IContiguousCollection< T >;
+
 	using UnderlyingType = std::array< T, _Size >;
 	using IteratorType = ArrayIterator< T, _Size >;
 	using CIteratorType = ArrayCIterator< T, _Size >;
@@ -104,11 +105,8 @@ protected:
 	EnumeratorType IRBegin() { return RIteratorType( m_Underlying.rbegin() ); }
 	EnumeratorType IREnd() { return RIteratorType( m_Underlying.rend() ); }
 	size_t ISize() const { return m_Underlying.size(); }
-	size_t IMaxSize() const { return m_Underlying.max_size(); }
 	T* IData() { return m_Underlying.data(); }
 	T& IAt( size_t a_Index ) { return m_Underlying.at( a_Index ); }
-
-private:
 
 	UnderlyingType m_Underlying = {};
 };

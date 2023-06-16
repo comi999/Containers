@@ -21,7 +21,7 @@ class Invoker
 private:
 
     template < auto _Function >
-    static Return Invocation( void* a_Object, Args&&... a_Args )
+    static Return Invocation( void* a_Object, Args... a_Args )
     {
         return ( reinterpret_cast< FunctionTraits::GetObject< decltype( _Function ) >* >( a_Object )->*_Function )( std::forward< Args >( a_Args )... );
     }

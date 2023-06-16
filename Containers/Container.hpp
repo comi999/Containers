@@ -525,9 +525,10 @@ public:
 	using PointerType = typename TraitsType::pointer;
 	using EnumeratorType = typename BaseType::EnumeratorType;
 	using CEnumeratorType = typename BaseType::CEnumeratorType;
+	using EnumerableType = Enumerable< ValueType >;
+	using CEnumerableType = Enumerable< const ValueType >;
 
 	using VTableType = EnumeratorVTable;
-	using EnumerableType = Enumerable< ValueType >;
 
 	Enumerator() = default;
 	Enumerator( const Enumerator& ) = default;
@@ -539,14 +540,14 @@ public:
 	Enumerator( const Enumerator< std::decay_t< T > >& a_Enumerator ) 
 		: m_VTable( a_Enumerator.m_VTable )
 		, m_Iterator( a_Enumerator.m_Iterator )
-		, m_Enumerable( a_Enumerator.m_Enumerable )
+		, m_Enumerable( ( const CEnumerableType* )a_Enumerator.m_Enumerable )
 	{}
 
 	template < typename = std::enable_if_t< std::is_const_v< T > > >
 	Enumerator( Enumerator< std::decay_t< T > >&& a_Enumerator )
 		: m_VTable( a_Enumerator.m_VTable )
 		, m_Iterator( std::move( a_Enumerator.m_Iterator ) )
-		, m_Enumerable( ( EnumerableType* )a_Enumerator.m_Enumerable )
+		, m_Enumerable( ( CEnumerableType* )a_Enumerator.m_Enumerable )
 	{}
 
 private:
@@ -1279,11 +1280,17 @@ private:
 };
 
 template < typename T >
+class Deferred;
+
+template < typename T >
 class ICollection
 {
 public:
 
 	using ValueType = std::decay_t< T >;
+	using SizeType = size_t;
+	using DifferenceType = std::ptrdiff_t;
+
 	using IteratorType = Enumerator< T >;
 	using CIteratorType = CEnumerator< T >;
 	using EnumeratorType = Enumerator< T >;
@@ -1297,11 +1304,11 @@ public:
 	IteratorType End() { return IEnd(); }
 	CIteratorType End() const { return const_cast< ICollection* >( this )->IEnd(); }
 	CIteratorType CEnd() const { return const_cast< ICollection* >( this )->IEnd(); }
+
 	EnumerableType ToEnumerable() { return IToEnumerable(); }
 	CEnumerableType ToEnumerable() const { return const_cast< ICollection* >( this )->IToEnumerable(); }
 	CEnumerableType ToCEnumerable() const { return const_cast< ICollection* >( this )->IToEnumerable(); }
 	size_t Size() const { return ISize(); }
-	size_t MaxSize() const { return IMaxSize(); }
 
 	bool Contains( const T& a_Value ) const;
 	bool Contains( const Predicate< const T& >& a_Predicate ) const;
@@ -1313,9 +1320,10 @@ public:
 	const T* FindLast( const Predicate< const T& >& a_Predicate ) const { return const_cast< ICollection* >( this )->FindLast( a_Predicate ); }
 	T* FindLast( const T& a_Value );
 	T* FindLast( const Predicate< const T& >& a_Predicate );
+	
 	//Collection< const T* > FindAll( const T& a_Value ) const;
 	//Collection< const T* > FindAll( const Predicate< const T& >& a_Predicate ) const;
-	//Collection< T* > FindAll( const T& a_Value );
+	Deferred< T > FindAll( const T& a_Value );
 	//Collection< T* > FindAll( const Predicate< const T& >& a_Predicate );
 
 	template < typename U = T >
@@ -1344,11 +1352,10 @@ public:
 
 protected:
 
-	virtual EnumerableType IToEnumerable() = 0;
-	virtual size_t ISize() const = 0;
-	virtual size_t IMaxSize() const = 0;
 	virtual EnumeratorType IBegin() = 0;
 	virtual EnumeratorType IEnd() = 0;
+	virtual EnumerableType IToEnumerable() = 0;
+	virtual size_t ISize() const = 0;
 };
 
 template < typename T >
@@ -1356,7 +1363,11 @@ class IContiguousCollection : public ICollection< T >
 {
 public:
 
+	using ValueType = T;
+	using SizeType = size_t;
+	using DifferenceType = std::ptrdiff_t;
 	using BaseType = ICollection< T >;
+
 	using IteratorType = typename BaseType::IteratorType;
 	using CIteratorType = typename BaseType::CIteratorType;
 	using RIteratorType = Enumerator< T >;
@@ -1367,11 +1378,11 @@ public:
 	using CEnumerableType = typename BaseType::CEnumerableType;
 
 	RIteratorType RBegin() { return IRBegin(); }
-	CRIteratorType RBegin() const { return const_cast< ICollection* >( this )->IRBegin(); }
-	CRIteratorType CRBegin() const { return const_cast< ICollection* >( this )->IRBegin(); }
+	CRIteratorType RBegin() const { return const_cast< IContiguousCollection* >( this )->IRBegin(); }
+	CRIteratorType CRBegin() const { return const_cast< IContiguousCollection* >( this )->IRBegin(); }
 	RIteratorType REnd() { return IREnd(); }
-	CRIteratorType REnd() const { return const_cast< ICollection* >( this )->IREnd(); }
-	CRIteratorType CREnd() const { return const_cast< ICollection* >( this )->IREnd(); }
+	CRIteratorType REnd() const { return const_cast< IContiguousCollection* >( this )->IREnd(); }
+	CRIteratorType CREnd() const { return const_cast< IContiguousCollection* >( this )->IREnd(); }
 
 	T* Data() { return IData(); }
 	const T* Data() const { return const_cast< IContiguousCollection* >( this )->IData(); }
@@ -1394,9 +1405,6 @@ protected:
 	virtual T* IData() = 0;
 	virtual T& IAt( size_t a_Index ) = 0;
 };
-
-#pragma once
-#include "Container.hpp"
 
 template < typename T >
 using SpanIterator = RandomAccessIterator< T* >;
@@ -1468,7 +1476,6 @@ protected:
 
 	EnumerableType IToEnumerable() { return EnumerableType( Size(), Begin(), End() ); }
 	size_t ISize() const { return Size(); }
-	size_t IMaxSize() const { return MaxSize(); }
 	EnumeratorType IBegin() { return Begin(); }
 	EnumeratorType IEnd() { return End(); }
 	EnumeratorType IRBegin() { return RBegin(); }
@@ -1476,10 +1483,8 @@ protected:
 	T* IData() { return m_Data; }
 	T& IAt( size_t a_Index ) { return m_Data[ a_Index ]; }
 
-private:
-
-	T* m_Data;
-	size_t m_Size;
+	ValueType* m_Data;
+	SizeType   m_Size;
 };
 
 #pragma region SpanDefinitions
@@ -1510,15 +1515,270 @@ Span< T >::Span( IContiguousCollection< T >& a_ContiguousCollection )
 {}
 #pragma endregion
 
-template < typename T, typename _Allocator = std::allocator< T > >
+template < typename T >
 class Collection : public Span< T >
 {
 public:
 
+	using ValueType = T;
+	using SizeType = size_t;
+	using DifferenceType = std::ptrdiff_t;
+	using BaseType = Span< T >;
+
 	Collection() = default;
-	Collection( const Collection& ) = default;
+	Collection( const Collection& );
+	Collection( Collection&& );
+	Collection( SizeType a_Capacity );
+	Collection( const ICollection< T >& a_Collection );
+	Collection( const ICollection< T >& a_Collection, SizeType a_Capacity );
+
+	constexpr SizeType MaxSize() const { return -1; }
+	SizeType Capacity() const { return m_Capacity; }
+
+	// Need more functions.
+
+protected:
+
+	SizeType m_Capacity;
 };
 
+template < typename T >
+Collection< T >::Collection( const Collection& a_Collection )
+	: BaseType( ( T* )std::malloc( a_Collection.m_Capacity * sizeof( T ) ), a_Collection.m_Size )
+	, m_Capacity( a_Collection.m_Capacity )
+{
+	if constexpr ( std::is_pod_v< T > )
+	{
+		std::memcpy( this->m_Data, a_Collection.m_Data, a_Collection.m_Size * sizeof( T ) );
+	}
+	else
+	{
+		std::copy( a_Collection.Begin(), a_Collection.End(), this->Begin() );
+	}
+}
+
+template < typename T >
+Collection< T >::Collection( Collection&& a_Collection )
+	: BaseType( a_Collection.m_Data, a_Collection.m_Size )
+	, m_Capacity( a_Collection.m_Capacity )
+{
+	a_Collection.m_Data = nullptr;
+	a_Collection.m_Size = 0u;
+	a_Collection.m_Capacity = 0u;
+}
+
+template < typename T >
+Collection< T >::Collection( SizeType a_Capacity )
+	: BaseType( ( T* )std::malloc( a_Capacity * sizeof( T ) ), 0u )
+	, m_Capacity( a_Capacity )
+{}
+
+template < typename T >
+Collection< T >::Collection( const ICollection< T >& a_Collection )
+	: BaseType( ( T* )std::malloc( a_Collection.Size() * sizeof( T ) ), a_Collection.Size() )
+	, m_Capacity( a_Collection.Size() )
+{
+	std::copy( a_Collection.Begin(), a_Collection.End(), this->Begin() );
+}
+
+template < typename T >
+Collection< T >::Collection( const ICollection< T >& a_Collection, SizeType a_Capacity )
+	: BaseType( ( T* )std::malloc( a_Capacity * sizeof( T ) ), a_Collection.Size() )
+	, m_Capacity( a_Capacity )
+{
+	std::copy_n( a_Collection.Begin(), a_Collection.Size(), this->Begin() );
+}
+
+template < typename T >
+class DeferredIterator : public IForwardIterator< T >
+{
+public:
+
+	using BaseType = IForwardIterator< T >;
+	using TraitsType = std::iterator_traits< DeferredIterator >;
+	using CategoryType = typename TraitsType::iterator_category;
+	using DifferenceType = typename TraitsType::difference_type;
+	using ValueType = typename TraitsType::value_type;
+	using ReferenceType = typename TraitsType::reference;
+	using PointerType = typename TraitsType::pointer;
+	using EnumeratorType = typename BaseType::EnumeratorType;
+	using CEnumeratorType = typename BaseType::CEnumeratorType;
+
+	DeferredIterator() = default;
+	DeferredIterator( const DeferredIterator& ) = default;
+	DeferredIterator( DeferredIterator&& ) = default;
+	DeferredIterator& operator=( const DeferredIterator& ) = default;
+	DeferredIterator& operator=( DeferredIterator&& ) = default;
+
+	DeferredIterator( Deferred< T >* a_Deferred, size_t a_Index )
+		: m_Index( -1 )
+		, m_Value( nullptr )
+		, m_Deferred( a_Deferred )
+
+	{
+		for ( int i = -1; i < ( int )a_Index; ++i )
+			++* this;
+	}
+
+	ReferenceType operator*() const { return *m_Value; }
+	PointerType operator->() const { return m_Value; }
+	DeferredIterator& operator++() { IIncrement(); return *this; }
+	DeferredIterator operator++( int ) { DeferredIterator Temp = *this; ++* this; return Temp; }
+	bool operator==( const DeferredIterator& a_Iterator ) const { return false; }
+	bool operator!=( const DeferredIterator& a_Iterator ) const { return false; }
+
+protected:
+
+	EnumeratorType IToEnumerator() { return *this; }
+	ReferenceType IDereference() const { return *m_Value; }
+	PointerType IArrow() const { return m_Value; }
+	void IIncrement();
+
+private:
+
+	int64_t m_Index;
+	T* m_Value;
+	Deferred< T >* m_Deferred;
+};
+
+template < typename T >
+class Deferred : public ICollection< T >
+{
+public:
+
+	using ValueType = T;
+	using SizeType = size_t;
+	using DifferenceType = std::ptrdiff_t;
+	using BaseType = ICollection< T >;
+	using SelectorType = Invoker< T*, std::any& >;
+
+	using IteratorType = DeferredIterator< T >;
+	using CIteratorType = DeferredIterator< const T >;
+	using EnumeratorType = Enumerator< T >;
+	using CEnumeratorType = CEnumerator< T >;
+	using EnumerableType = Enumerable< T >;
+	using CEnumerableType = CEnumerable< T >;
+
+private:
+public:
+
+
+
+	Deferred() = default;
+
+	Deferred( SizeType a_Capacity, std::any&& a_State, SelectorType&& a_Selector )
+		:
+		, m_Cache( a_Capacity )
+		, m_State( std::move( a_State ) )
+		, m_Selector( std::move( a_Selector ) )
+	{}
+
+	IteratorType Begin() { return IteratorType( this, 0 ); }
+	CIteratorType Begin() const { return CIteratorType( this, 0 ); }
+	CIteratorType CBegin() const { return CIteratorType( this, 0 ); }
+	IteratorType End() { return IteratorType(); }
+	CIteratorType End() const { return CIteratorType(); }
+	CIteratorType CEnd() const { return CIteratorType(); }
+
+	// Will force all values to be found so that it can give real size.
+	SizeType Size() const 
+	{
+		for ( T* Value = m_Selector.Invoke( m_State ); Value; Value = m_Selector.Invoke( m_State ) )
+		{
+
+		}
+
+		return 0u;
+	}
+
+protected:
+
+	DifferenceType Progress( DifferenceType a_Count )
+	{
+		// Do something that finds the next element.
+		if ( a_Count == 0 )
+		{
+			return;
+		}
+
+		m_Cache.reserve( m_Cache.size() + a_Count );
+
+		for ( ; a_Count > 0; --a_Count )
+		{
+			T* v = m_Processor.Invoke( m_Begin.AsIterator(), m_State );
+
+			if ( v == nullptr )
+			{
+				return;
+			}
+
+			m_Cache.push_back( v );
+			++m_Index;
+		}
+	}
+
+	T* Get( size_t a_Index )
+	{
+		Progress( ( int64_t )a_Index - m_Index );
+
+		if ( !( a_Index < m_Cache.size() ) )
+		{
+			return nullptr;
+		}
+
+		return m_Cache[ a_Index ];
+	}
+
+	std::vector< T* > ToVector()
+	{
+		std::vector< T* > Result;
+
+		for ( auto& val : *this )
+		{
+			Result.push_back( &val );
+		}
+
+		return Result;
+	}
+
+	SizeType ISize() const { return Size(); }
+	EnumeratorType IBegin() { return Begin(); }
+	EnumeratorType IEnd() { return End(); }
+	EnumerableType IToEnumerable() { return EnumerableType( Size(), Begin(), End() ); }
+
+private:
+
+	friend class DeferredIterator< T >;
+
+	Collection< T* > m_Cache;
+	std::any         m_State;
+	SelectorType     m_Selector;
+};
+
+template < typename T >
+void DeferredIterator< T >::IIncrement()
+{
+	m_Value = m_Deferred->Get( ++m_Index );
+}
+
+template < typename T >
+Deferred< T > ICollection< T >::FindAll( const T& a_Value )
+{
+	struct FindAllState
+	{
+
+	};
+
+	std::any State = std::make_any< FindAllState >();
+	FindAllState& StateVal = ( FindAllState& )State;
+	
+	Deferred< T >::Selector Sel = [&]( IForwardIterator< T >& a_Iterator, std::any& a_State ) -> T*
+	{
+		return nullptr;
+	};
+
+	return Deferred< T >( this->Begin(), std::move( State ), Sel);
+}
 
 template < typename T >
 class Enumerable : public ICollection< T >
@@ -1592,16 +1852,14 @@ public:
 
 protected:
 
+	template < class > friend class Enumerable;
+
 	size_t ISize() const { return Size(); }
 	size_t IMaxSize() const { return MaxSize(); }
 	EnumerableType IToEnumerable() { return *this; }
 	IteratorType IBegin() { return m_Begin; }
 	IteratorType IEnd() { return m_End; }
 
-private:
-
-	template < class > friend class Enumerable;
-	
 	size_t m_Size;
 	IteratorType m_Begin;
 	IteratorType m_End;
@@ -2085,6 +2343,19 @@ namespace std
 	template < typename T > auto rend( const Span< T >& a_Span ) { return a_Span.REnd(); }
 	template < typename T > auto crend( const Span< T >& a_Span ) { return a_Span.CREnd(); }
 
+	template < typename T > auto begin( Collection< T >& a_Collection ) { return a_Collection.Begin(); }
+	template < typename T > auto begin( const Collection< T >& a_Collection ) { return a_Collection.Begin(); }
+	template < typename T > auto cbegin( const Collection< T >& a_Collection ) { return a_Collection.CBegin(); }
+	template < typename T > auto rbegin( Collection< T >& a_Collection ) { return a_Collection.RBegin(); }
+	template < typename T > auto rbegin( const Collection< T >& a_Collection ) { return a_Collection.RBegin(); }
+	template < typename T > auto crbegin( const Collection< T >& a_Collection ) { return a_Collection.CRBegin(); }
+	template < typename T > auto end( Collection< T >& a_Collection ) { return a_Collection.End(); }
+	template < typename T > auto end( const Collection< T >& a_Collection ) { return a_Collection.End(); }
+	template < typename T > auto cend( const Collection< T >& a_Collection ) { return a_Collection.CEnd(); }
+	template < typename T > auto rend( Collection< T >& a_Collection ) { return a_Collection.REnd(); }
+	template < typename T > auto rend( const Collection< T >& a_Collection ) { return a_Collection.REnd(); }
+	template < typename T > auto crend( const Collection< T >& a_Collection ) { return a_Collection.CREnd(); }
+
 	template < typename T >
 	struct iterator_traits< IForwardIterator< T > >
 	{
@@ -2143,6 +2414,16 @@ namespace std
 		using value_type = typename std::iterator_traits< T >::value_type;
 		using reference = typename std::iterator_traits< T >::reference;
 		using pointer = typename std::iterator_traits< T >::pointer;
+	};
+
+	template < typename T >
+	struct iterator_traits< DeferredIterator< T > >
+	{
+		using iterator_category = std::forward_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = T;
+		using reference = T&;
+		using pointer = T*;
 	};
 
 	template < typename T >
