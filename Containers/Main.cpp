@@ -174,15 +174,142 @@
 //	m_Value = m_DeferredCollection->Get( ++m_Index );
 //}
 
+template < typename T >
+void Destructor( void* a_Object );
+
+using DestructorFunction = void( * )( void* );
+
+constexpr uintptr_t VirtualSignature = 0xFEEDDEAFDEADBEEF;
+
+template < typename T >
+struct VirtualObject
+{
+	template < typename... Args >
+	VirtualObject( Args&&... a_Args )
+		: Value( std::forward< Args >( a_Args )... )
+	{
+		Function = Destructor< T >;
+	}
+
+	const uintptr_t Signature = VirtualSignature;
+	DestructorFunction Function;
+	T Value;
+};
+
+template < typename T >
+void Destructor( void* a_Object )
+{
+	delete ( VirtualObject< T >* )a_Object;
+}
+
+template < typename Return, typename... Args >
+class invoker
+{
+public:
+
+	using InvocationFunc = Return( * )( void*, Args&&... );
+
+	template < auto _Function >
+	static Return Invocation( void* a_Object, Args&&... a_Args )
+	{
+		return ( reinterpret_cast< FunctionTraits::GetObject< decltype( _Function ) >* >( a_Object )->*_Function )( std::forward< Args >( a_Args )... );
+	}
+
+	template < typename T >
+	invoker( T&& a_Lambda )
+	{
+		m_Object = new VirtualObject< T >( std::forward< T >( a_Lambda ) );
+		m_Function = reinterpret_cast< void* >( Invocation< &std::remove_reference_t<T>::operator() > );
+	}
+
+	~invoker()
+	{
+		Unbind();
+	}
+
+	void Unbind()
+	{
+		if ( m_Object )
+		{
+			( *reinterpret_cast< DestructorFunction* >( ( uint8_t* )m_Object + sizeof( uintptr_t ) ) )( m_Object );
+		}
+
+		m_Object = nullptr;
+		m_Function = nullptr;
+	}
+
+	Return Invoke( Args... a_Args )
+	{
+		if ( *( uintptr_t* )m_Object == VirtualSignature )
+		{
+			return ( ( InvocationFunc )m_Function )( ( uint8_t* )m_Object + sizeof( uintptr_t ) + sizeof( DestructorFunction ), std::forward< Args >( a_Args )... );
+		}
+		else
+		{
+
+		}
+	}
+
+	void* m_Function;
+	void* m_Object;
+};
+
+struct Movable
+{
+	Movable() = default;
+	Movable( const Movable& ) = default;
+	Movable( Movable&& ) = default;
+
+	std::any Value;
+};
+
+struct CallableObject
+{
+	CallableObject( std::initializer_list< int > a_List )
+		: data( a_List )
+	{}
+
+	CallableObject() = default;
+	CallableObject( const CallableObject& ) = default;
+	CallableObject( CallableObject&& ) = default;
+	~CallableObject() { std::cout << "destroying"; }
+	int operator()()
+	{
+		return data[ 1 ];
+	}
+
+	std::vector< int > data;
+};
+
+
 int main()
 {
-	Array< int, 5 > a = { 1, 3, 3, 3, 5 };
 
-	auto df = a.FindAll( 3 );
-	
-	for ( auto& val : df )
+	std::vector< int > vec = { 1,2,3,4,5,6,7 };
+	Movable m;
+	m.Value = std::make_any< std::vector<int> >( std::move(vec) );
+
+	invoker<int> inv = [num = std::move(m)]()
 	{
-		std::cout << val << std::endl;
-	}
-	
+		return std::any_cast<const std::vector<int>&>(num.Value).at(1);
+	};
+
+	int val = inv.Invoke();
+	inv.Unbind();
+
+
+	//Array< int, 5 > a = { 1, 3, 3, 3, 5 };
+
+	//auto df = a.FindAll( 3 );
+	//
+	//for ( auto Begin = df.Begin(), End = df.End(); Begin != End; ++Begin )
+	//{
+	//	std::cout << *Begin << std::endl;
+	//}
+
+
+	//for ( auto& val : df )
+	//{
+	//	std::cout << val << std::endl;
+	//}
 }

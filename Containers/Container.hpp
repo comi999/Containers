@@ -531,13 +531,20 @@ public:
 	using VTableType = EnumeratorVTable;
 
 	Enumerator() = default;
-	Enumerator( const Enumerator& ) = default;
-	Enumerator( Enumerator&& ) = default;
-	Enumerator& operator=( const Enumerator& ) = default;
-	Enumerator& operator=( Enumerator&& ) = default;
+	Enumerator( const Enumerator& a_Enumerator ) = default;
+
+	Enumerator( Enumerator&& a_Enumerator ) noexcept
+		: m_VTable( a_Enumerator.m_VTable )
+		, m_Iterator( std::move( a_Enumerator.m_Iterator ) )
+		, m_Enumerable( a_Enumerator.m_Enumerable )
+	{
+		a_Enumerator.m_VTable = nullptr;
+		a_Enumerator.m_Iterator.reset();
+		a_Enumerator.m_Enumerable = nullptr;
+	}
 
 	template < typename = std::enable_if_t< std::is_const_v< T > > >
-	Enumerator( const Enumerator< std::decay_t< T > >& a_Enumerator ) 
+	Enumerator( const Enumerator< std::decay_t< T > >& a_Enumerator )
 		: m_VTable( a_Enumerator.m_VTable )
 		, m_Iterator( a_Enumerator.m_Iterator )
 		, m_Enumerable( ( const CEnumerableType* )a_Enumerator.m_Enumerable )
@@ -549,6 +556,11 @@ public:
 		, m_Iterator( std::move( a_Enumerator.m_Iterator ) )
 		, m_Enumerable( ( CEnumerableType* )a_Enumerator.m_Enumerable )
 	{}
+
+	Enumerator& operator=( const Enumerator& ) = default;
+	Enumerator& operator=( Enumerator&& ) = default;
+
+	// Need to add proper conversions in the assignment operator for non const enumerator
 
 private:
 
@@ -573,7 +585,7 @@ public:
 	template < typename It, typename = std::enable_if_t< is_compatible_iterator_v< It > > >
 	Enumerator( It&& a_Iterator )
 		: m_VTable( Operator< It, false > )
-		, m_Iterator( std::forward< It >( a_Iterator ) )
+		, m_Iterator( std::move( a_Iterator ) )
 		, m_Enumerable( nullptr )
 	{}
 
@@ -1534,6 +1546,12 @@ public:
 
 	constexpr SizeType MaxSize() const { return -1; }
 	SizeType Capacity() const { return m_Capacity; }
+	bool Empty() const { return !this->m_Size; }
+	bool Full() const { return this->m_Size == this->m_Capacity; }
+	void Add( const T& a_Value );
+
+	const T& operator[]( SizeType a_Index ) const { return this->m_Data[ a_Index ]; }
+	T& operator[]( SizeType a_Index ) { return this->m_Data[ a_Index ]; }
 
 	// Need more functions.
 
@@ -1589,6 +1607,15 @@ Collection< T >::Collection( const ICollection< T >& a_Collection, SizeType a_Ca
 	std::copy_n( a_Collection.Begin(), a_Collection.Size(), this->Begin() );
 }
 
+
+template < typename T >
+void Collection< T >::Add( const T& a_Value )
+{
+	_ASSERT_EXPR( !Full(), "Can not add more than capacity." );
+
+	new ( this->m_Data + this->m_Size++ ) T( a_Value );
+}
+
 template < typename T >
 class DeferredIterator : public IForwardIterator< T >
 {
@@ -1616,16 +1643,15 @@ public:
 		, m_Deferred( a_Deferred )
 
 	{
-		for ( int i = -1; i < ( int )a_Index; ++i )
-			++* this;
+		for ( int i = -1; i < ( int )a_Index; ++i ) ++*this;
 	}
 
 	ReferenceType operator*() const { return *m_Value; }
 	PointerType operator->() const { return m_Value; }
 	DeferredIterator& operator++() { IIncrement(); return *this; }
 	DeferredIterator operator++( int ) { DeferredIterator Temp = *this; ++* this; return Temp; }
-	bool operator==( const DeferredIterator& a_Iterator ) const { return false; }
-	bool operator!=( const DeferredIterator& a_Iterator ) const { return false; }
+	bool operator==( const DeferredIterator& a_Iterator ) const { return m_Value == a_Iterator.m_Value; }
+	bool operator!=( const DeferredIterator& a_Iterator ) const { return m_Value != a_Iterator.m_Value; }
 
 protected:
 
@@ -1659,16 +1685,12 @@ public:
 	using EnumerableType = Enumerable< T >;
 	using CEnumerableType = CEnumerable< T >;
 
-private:
-public:
-
-
-
 	Deferred() = default;
+	Deferred( const Deferred& ) = default;
+	Deferred( Deferred&& ) = default;
 
 	Deferred( SizeType a_Capacity, std::any&& a_State, SelectorType&& a_Selector )
-		:
-		, m_Cache( a_Capacity )
+		: m_Cache( a_Capacity )
 		, m_State( std::move( a_State ) )
 		, m_Selector( std::move( a_Selector ) )
 	{}
@@ -1680,48 +1702,55 @@ public:
 	CIteratorType End() const { return CIteratorType(); }
 	CIteratorType CEnd() const { return CIteratorType(); }
 
-	// Will force all values to be found so that it can give real size.
 	SizeType Size() const 
 	{
-		for ( T* Value = m_Selector.Invoke( m_State ); Value; Value = m_Selector.Invoke( m_State ) )
-		{
-
-		}
-
-		return 0u;
+		Progress();
+		return m_Cache.Size();
 	}
 
 protected:
 
-	DifferenceType Progress( DifferenceType a_Count )
+	SizeType Progress( SizeType a_Count = -1 ) const
 	{
 		// Do something that finds the next element.
-		if ( a_Count == 0 )
+		if ( a_Count == 0u || m_Cache.Full() )
 		{
-			return;
+			return 0u;
 		}
 
-		m_Cache.reserve( m_Cache.size() + a_Count );
+		SizeType Count = 0u;
 
-		for ( ; a_Count > 0; --a_Count )
+		if ( a_Count == -1 )
 		{
-			T* v = m_Processor.Invoke( m_Begin.AsIterator(), m_State );
-
-			if ( v == nullptr )
+			while ( ValueType* Value = m_Selector.Invoke( m_State ) )
 			{
-				return;
+				m_Cache.Add( Value );
+				++Count;
 			}
 
-			m_Cache.push_back( v );
-			++m_Index;
+			return Count;
 		}
+
+		for ( SizeType i = 0; i < a_Count; ++i )
+		{
+			if ( ValueType* Value = m_Selector.Invoke( m_State ) )
+			{
+				m_Cache.Add( Value );
+				++Count;
+				continue;
+			}
+
+			break;
+		}
+
+		return Count;
 	}
 
-	T* Get( size_t a_Index )
+	T* Get( SizeType a_Index ) const
 	{
-		Progress( ( int64_t )a_Index - m_Index );
+		Progress( a_Index - m_Cache.Size() + 1u );
 
-		if ( !( a_Index < m_Cache.size() ) )
+		if ( !( a_Index < m_Cache.Size() ) )
 		{
 			return nullptr;
 		}
@@ -1750,9 +1779,9 @@ private:
 
 	friend class DeferredIterator< T >;
 
-	Collection< T* > m_Cache;
-	std::any         m_State;
-	SelectorType     m_Selector;
+	mutable Collection< T* > m_Cache;
+	mutable std::any         m_State;
+	SelectorType             m_Selector;
 };
 
 template < typename T >
@@ -1764,20 +1793,38 @@ void DeferredIterator< T >::IIncrement()
 template < typename T >
 Deferred< T > ICollection< T >::FindAll( const T& a_Value )
 {
-	struct FindAllState
+	struct StateType
 	{
-
+		Enumerator< T > Begin;
+		Enumerator< T > End;
+		const T* Value;
 	};
 
-	std::any State = std::make_any< FindAllState >();
-	FindAllState& StateVal = ( FindAllState& )State;
-	
-	Deferred< T >::Selector Sel = [&]( IForwardIterator< T >& a_Iterator, std::any& a_State ) -> T*
+	std::any StateAny = std::make_any< StateType >();
+	StateType& State = std::any_cast< StateType& >( StateAny );
+	State.Begin = this->Begin();
+	State.End = this->End();
+	State.Value = &a_Value;
+
+	Deferred< T > Result( Size(), std::move( StateAny ), [](std::any& a_State) -> T*
 	{
+		StateType& State = std::any_cast< StateType& >( a_State );
+
+		while ( State.Begin != State.End )
+		{
+			T& Value = *State.Begin;
+			++State.Begin;
+
+			if ( Value == *State.Value )
+			{
+				return &Value;
+			}
+		}
+
 		return nullptr;
-	};
+	} );
 
-	return Deferred< T >( this->Begin(), std::move( State ), Sel);
+	return std::move( Result );
 }
 
 template < typename T >

@@ -3,6 +3,10 @@
 
 #include "FunctionTraits.hpp"
 
+// storing a lambda/functor
+// - needs pointer to invoker
+// - needs pointer to 
+
 // Static storage object for a member function pointer. Use as MemberFunction<&Object::Member>{}.
 template < auto _Function >
 struct MemberFunction {};
@@ -37,10 +41,6 @@ public:
     // Create an invoker from a callable object. This can be a static function, member function or lambda.
     template < typename Object, auto _Function >
     Invoker( Object* a_Object, MemberFunction< _Function > ) { Bind< _Function >( a_Object ); }
-
-    // Create an invoker from a callable object. This can be a static function, or functor type.
-    template < typename T >
-    Invoker( T& a_Function ) { Bind( a_Function ); }
 
     // Create an invoker from a callable object. This can be a static function, or functor type.
     template < typename T >
@@ -133,7 +133,7 @@ public:
     // Invoke the stored callable. _Safe set to true will make sure that
     // the invoker is only called if it is bound to a functor or function. Default Return if not.
     template < bool _Safe = false >
-    Return Invoke( Args... a_Args ) const
+    Return Invoke( Args&&... a_Args ) const
     {
         if constexpr ( _Safe )
         {
