@@ -10,66 +10,6 @@
 #define ENUMERATOR_ERROR_MESSAGE_OUT_OF_RANGE "Iterator outside of bounding range."
 #define ENUMERATOR_ERROR_MESSAGE_NO_VTABLE "No virtual table set."
 #define ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS "Underlying iterators are incompatible and can not be compared."
-#include <vector>
-namespace ContainerTraits
-{
-	template < typename T >
-	struct has_begin
-	{
-	private:
-
-		template < typename U > static char test( std::remove_reference_t< decltype( std::begin( std::declval< T& >() ) ) >* );
-		template < typename U > static long test( ... );
-
-	public:
-	
-		static constexpr bool value = sizeof( test< T >( 0 ) ) == sizeof( char );
-	};
-
-	template < typename T >
-	static constexpr bool has_begin_v = has_begin< T >::value;
-
-	template < typename T >
-	struct has_end
-	{
-	private:
-
-		template < typename U > static char test( std::remove_reference_t< decltype( std::end( std::declval< T& >() ) ) >* );
-		template < typename U > static long test( ... );
-
-	public:
-
-		static constexpr bool value = sizeof( test< T >( 0 ) ) == sizeof( char );
-	};
-
-	template < typename T >
-	static constexpr bool has_end_v = has_begin< T >::value;
-
-	template < typename T >
-	static constexpr bool is_iterable_v = has_begin_v< T > && has_end_v< T >;
-
-	template < typename T >
-	struct has_size
-	{
-	private:
-
-		template < typename U > static char test( std::remove_reference_t< decltype( std::size( std::declval< T& >() ) ) >* );
-		template < typename U > static long test( ... );
-
-	public:
-
-		static constexpr bool value = sizeof( test< T >( 0 ) ) == sizeof( char );
-	};
-
-	template < typename T >
-	struct iterable_type
-	{
-		template < typename U >
-	};
-
-	//template < typename T >
-	//static constexpr bool is_iterable_v = has_begin_v< T > && has_end_v< T > && 
-}
 
 template < typename T >
 class Enumerator;
@@ -543,6 +483,21 @@ namespace std
 
 	template < typename It >
 	static constexpr bool is_const_enumerator_v = is_const_enumerator< It >::value;
+
+	template < typename T >
+	struct is_iterable
+	{
+	private:
+		template < typename U > static char test_begin( std::remove_reference_t< decltype( std::begin( std::declval< U& >() ) ) >* );
+		template < typename U > static long test_begin( ... );
+		template < typename U > static char test_end( std::remove_reference_t< decltype( std::end( std::declval< U& >() ) ) >* );
+		template < typename U > static long test_end( ... );
+	public:
+		static constexpr bool value = sizeof( test_begin< T >( 0 ) ) == sizeof( char ) && sizeof( test_end< T >( 0 ) ) == sizeof( char );
+	};
+
+	template < typename T >
+	static constexpr bool is_iterable_v = is_iterable< T >::value;
 }
 
 enum class EEnumeratorOperation
@@ -1489,11 +1444,11 @@ public:
 	Generic( const Generic& ) = default;
 	Generic( Generic&& ) = default;
 
-	template < typename _Container >
-	Generic( _Container&& a_Container )
-	{
-		static_assert(  )
-	}
+	//template < typename _Container >
+	//Generic( _Container&& a_Container )
+	//{
+	//	static_assert(  )
+	//}
 
 
 protected:
@@ -2455,6 +2410,7 @@ decltype( auto ) Enumerator< T >::Operator_Inequal( It& a_Left, It& a_Right )
 
 namespace std
 {
+	template < typename T > auto size( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.Size(); }
 	template < typename T > auto begin( Enumerable< T >& a_Enumerable ) { return a_Enumerable.Begin(); }
 	template < typename T > auto begin( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.Begin(); }
 	template < typename T > auto cbegin( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.CBegin(); }
@@ -2468,6 +2424,7 @@ namespace std
 	template < typename T > auto rend( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.REnd(); }
 	template < typename T > auto crend( const Enumerable< T >& a_Enumerable ) { return a_Enumerable.CREnd(); }
 
+	template < typename T > auto size( ICollection< T >& a_Collection ) { return a_Collection.Size(); }
 	template < typename T > auto begin( ICollection< T >& a_Collection ) { return a_Collection.Begin(); }
 	template < typename T > auto begin( const ICollection< T >& a_Collection ) { return a_Collection.Begin(); }
 	template < typename T > auto cbegin( const ICollection< T >& a_Collection ) { return a_Collection.CBegin(); }
@@ -2481,6 +2438,7 @@ namespace std
 	template < typename T > auto rend( const ICollection< T >& a_Collection ) { return a_Collection.REnd(); }
 	template < typename T > auto crend( const ICollection< T >& a_Collection ) { return a_Collection.CREnd(); }
 
+	template < typename T > auto size( IContiguousCollection< T >& a_Collection ) { return a_Collection.Size(); }
 	template < typename T > auto begin( IContiguousCollection< T >& a_Collection ) { return a_Collection.Begin(); }
 	template < typename T > auto begin( const IContiguousCollection< T >& a_Collection ) { return a_Collection.Begin(); }
 	template < typename T > auto cbegin( const IContiguousCollection< T >& a_Collection ) { return a_Collection.CBegin(); }
@@ -2494,6 +2452,7 @@ namespace std
 	template < typename T > auto rend( const IContiguousCollection< T >& a_Collection ) { return a_Collection.REnd(); }
 	template < typename T > auto crend( const IContiguousCollection< T >& a_Collection ) { return a_Collection.CREnd(); }
 
+	template < typename T > auto size( Span< T >& a_Span ) { return a_Span.Size(); }
 	template < typename T > auto begin( Span< T >& a_Span ) { return a_Span.Begin(); }
 	template < typename T > auto begin( const Span< T >& a_Span ) { return a_Span.Begin(); }
 	template < typename T > auto cbegin( const Span< T >& a_Span ) { return a_Span.CBegin(); }
@@ -2507,6 +2466,7 @@ namespace std
 	template < typename T > auto rend( const Span< T >& a_Span ) { return a_Span.REnd(); }
 	template < typename T > auto crend( const Span< T >& a_Span ) { return a_Span.CREnd(); }
 
+	template < typename T > auto size( Collection< T >& a_Collection ) { return a_Collection.Size(); }
 	template < typename T > auto begin( Collection< T >& a_Collection ) { return a_Collection.Begin(); }
 	template < typename T > auto begin( const Collection< T >& a_Collection ) { return a_Collection.Begin(); }
 	template < typename T > auto cbegin( const Collection< T >& a_Collection ) { return a_Collection.CBegin(); }

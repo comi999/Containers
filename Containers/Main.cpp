@@ -17,6 +17,10 @@
 
 #include "Array.hpp"
 
+constexpr std::true_type func( int ) { return std::true_type{}; }
+
+static constexpr bool val = func( 0 )( );
+
 
 int main()
 {
