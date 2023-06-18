@@ -22,9 +22,8 @@ int main()
 {
 	Array< int, 5 > a = { 1, 3, 3, 3, 5 };
 
-	Deferred< int > df = a.FindAll( 3 );
-	df.FindAll()
-
+	Deferred< int > df = a.FindAll( []( const int& val ) { return val > 1; } );
+	df = df.FindAll( []( const int& val ) { return val < 5; } );
 	for ( auto& val : df )
 	{
 		std::cout << val << std::endl;
