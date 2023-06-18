@@ -1336,7 +1336,9 @@ public:
 	//Collection< const T* > FindAll( const T& a_Value ) const;
 	//Collection< const T* > FindAll( const Predicate< const T& >& a_Predicate ) const;
 	Deferred< T > FindAll( const T& a_Value );
-	//Collection< T* > FindAll( const Predicate< const T& >& a_Predicate );
+
+	template < typename _Predicate
+	Deferred< T > FindAll( _Predicate&& a_Predicate );
 
 	template < typename U = T >
 	U Aggregate( const Invoker< U, const T&, const U& >& a_Aggregator ) const;
@@ -1676,7 +1678,7 @@ public:
 	using SizeType = size_t;
 	using DifferenceType = std::ptrdiff_t;
 	using BaseType = ICollection< T >;
-	using SelectorType = Invoker< T*, std::any& >;
+	using SelectorType = Invoker< T* >;
 
 	using IteratorType = DeferredIterator< T >;
 	using CIteratorType = DeferredIterator< const T >;
@@ -1689,9 +1691,8 @@ public:
 	Deferred( const Deferred& ) = default;
 	Deferred( Deferred&& ) = default;
 
-	Deferred( SizeType a_Capacity, std::any&& a_State, SelectorType&& a_Selector )
+	Deferred( SizeType a_Capacity, SelectorType&& a_Selector )
 		: m_Cache( a_Capacity )
-		, m_State( std::move( a_State ) )
 		, m_Selector( std::move( a_Selector ) )
 	{}
 
@@ -1722,7 +1723,7 @@ protected:
 
 		if ( a_Count == -1 )
 		{
-			while ( ValueType* Value = m_Selector.Invoke( m_State ) )
+			while ( ValueType* Value = m_Selector.Invoke() )
 			{
 				m_Cache.Add( Value );
 				++Count;
@@ -1733,7 +1734,7 @@ protected:
 
 		for ( SizeType i = 0; i < a_Count; ++i )
 		{
-			if ( ValueType* Value = m_Selector.Invoke( m_State ) )
+			if ( ValueType* Value = m_Selector.Invoke() )
 			{
 				m_Cache.Add( Value );
 				++Count;
@@ -1780,7 +1781,6 @@ private:
 	friend class DeferredIterator< T >;
 
 	mutable Collection< T* > m_Cache;
-	mutable std::any         m_State;
 	SelectorType             m_Selector;
 };
 
@@ -1793,29 +1793,14 @@ void DeferredIterator< T >::IIncrement()
 template < typename T >
 Deferred< T > ICollection< T >::FindAll( const T& a_Value )
 {
-	struct StateType
+	return Deferred< T >( Size(), [ Begin = this->Begin(), End = this->End(), ValueToFind = &a_Value ]() mutable -> T*
 	{
-		Enumerator< T > Begin;
-		Enumerator< T > End;
-		const T* Value;
-	};
-
-	std::any StateAny = std::make_any< StateType >();
-	StateType& State = std::any_cast< StateType& >( StateAny );
-	State.Begin = this->Begin();
-	State.End = this->End();
-	State.Value = &a_Value;
-
-	Deferred< T > Result( Size(), std::move( StateAny ), [](std::any& a_State) -> T*
-	{
-		StateType& State = std::any_cast< StateType& >( a_State );
-
-		while ( State.Begin != State.End )
+		while ( Begin != End )
 		{
-			T& Value = *State.Begin;
-			++State.Begin;
+			T& Value = *Begin;
+			++Begin;
 
-			if ( Value == *State.Value )
+			if ( Value == *ValueToFind )
 			{
 				return &Value;
 			}
@@ -1823,8 +1808,27 @@ Deferred< T > ICollection< T >::FindAll( const T& a_Value )
 
 		return nullptr;
 	} );
+}
 
-	return std::move( Result );
+template < typename T >
+template < typename _Predicate >
+Deferred< T > ICollection< T >::FindAll( _Predicate&& a_Value )
+{
+	/*return Deferred< T >( Size(), [ Begin = this->Begin(), End = this->End(), Predicate = a_Value]() mutable -> T*
+		{
+			while ( Begin != End )
+			{
+				T& Value = *Begin;
+				++Begin;
+
+				if ( Value == *ValueToFind )
+				{
+					return &Value;
+				}
+			}
+
+	return nullptr;
+		} );*/
 }
 
 template < typename T >
