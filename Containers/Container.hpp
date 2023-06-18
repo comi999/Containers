@@ -1335,10 +1335,10 @@ public:
 	
 	//Collection< const T* > FindAll( const T& a_Value ) const;
 	//Collection< const T* > FindAll( const Predicate< const T& >& a_Predicate ) const;
-	Deferred< T > FindAll( const T& a_Value );
+	Deferred< T > FindAll( const T& a_Value ) &;
 
 	template < typename _Predicate >
-	Deferred< T > FindAll( _Predicate&& a_Predicate );
+	Deferred< T > FindAll( _Predicate&& a_Predicate ) &;
 
 	template < typename U = T >
 	U Aggregate( const Invoker< U, const T&, const U& >& a_Aggregator ) const;
@@ -1572,11 +1572,11 @@ Collection< T >::Collection( const Collection& a_Collection )
 {
 	if constexpr ( std::is_pod_v< T > )
 	{
-		std::memcpy( this->m_Data, a_Collection.m_Data, a_Collection.m_Size * sizeof( T ) );
+		std::memcpy( BaseType::m_Data, a_Collection.m_Data, a_Collection.m_Size * sizeof( T ) );
 	}
 	else
 	{
-		std::copy( a_Collection.Begin(), a_Collection.End(), this->Begin() );
+		std::copy( a_Collection.Begin(), a_Collection.End(), BaseType::Begin() );
 	}
 }
 
@@ -1601,7 +1601,7 @@ Collection< T >::Collection( const ICollection< T >& a_Collection )
 	: BaseType( ( T* )std::malloc( a_Collection.Size() * sizeof( T ) ), a_Collection.Size() )
 	, m_Capacity( a_Collection.Size() )
 {
-	std::copy( a_Collection.Begin(), a_Collection.End(), this->Begin() );
+	std::copy( a_Collection.Begin(), a_Collection.End(), BaseType::Begin() );
 }
 
 template < typename T >
@@ -1609,23 +1609,24 @@ Collection< T >::Collection( const ICollection< T >& a_Collection, SizeType a_Ca
 	: BaseType( ( T* )std::malloc( a_Capacity * sizeof( T ) ), a_Collection.Size() )
 	, m_Capacity( a_Capacity )
 {
-	std::copy_n( a_Collection.Begin(), a_Collection.Size(), this->Begin() );
+	std::copy_n( a_Collection.Begin(), a_Collection.Size(), BaseType::Begin() );
 }
 
 template < typename T >
 Collection< T >& Collection< T >::operator=( const Collection& a_Collection )
 {
-	this->m_Data = ( T* )std::malloc( a_Collection.m_Capacity * sizeof( T ) );
-	this->m_Size = a_Collection.m_Size;
-	this->m_Capacity = a_Collection.m_Capacity;
+	/*BaseType::m_Data = ( T* )std::malloc( a_Collection.m_Capacity * sizeof( T ) );
+	BaseType::m_Size = a_Collection.m_Size;*/
+	BaseType( ( T* )std::malloc( a_Collection.Size() * sizeof( T ) ), a_Collection.Size() );
+	m_Capacity = a_Collection.m_Capacity;
 
 	if constexpr ( std::is_pod_v< T > )
 	{
-		std::memcpy( this->m_Data, a_Collection.m_Data, a_Collection.m_Size * sizeof( T ) );
+		std::memcpy( BaseType::m_Data, a_Collection.m_Data, a_Collection.m_Size * sizeof( T ) );
 	}
 	else
 	{
-		std::copy( a_Collection.Begin(), a_Collection.End(), this->Begin() );
+		std::copy( a_Collection.Begin(), a_Collection.End(), BaseType::Begin() );
 	}
 
 	return *this;
@@ -1634,7 +1635,7 @@ Collection< T >& Collection< T >::operator=( const Collection& a_Collection )
 template < typename T >
 Collection< T >& Collection< T >::operator=( Collection&& a_Collection )
 {
-	( BaseType& )*this = std::move( a_Collection )
+	return *this;
 }
 
 template < typename T >
@@ -1820,46 +1821,46 @@ void DeferredIterator< T >::IIncrement()
 	m_Value = m_Deferred->Get( ++m_Index );
 }
 
-template < typename T >
-Deferred< T > ICollection< T >::FindAll( const T& a_Value )
-{
-	return Deferred< T >( Size(), [ Begin = this->Begin(), End = this->End(), ValueToFind = &a_Value ]() mutable -> T*
-	{
-		while ( Begin != End )
-		{
-			T& Value = *Begin;
-			++Begin;
-
-			if ( Value == *ValueToFind )
-			{
-				return &Value;
-			}
-		}
-
-		return nullptr;
-	} );
-}
-
-template < typename T >
-template < typename _Predicate >
-Deferred< T > ICollection< T >::FindAll( _Predicate&& a_Predicate )
-{
-	return Deferred< T >( Size(), [ Begin = this->Begin(), End = this->End(), Predicate = std::forward< _Predicate >( a_Predicate ) ]() mutable -> T*
-	{
-		while ( Begin != End )
-		{
-			T& Value = *Begin;
-			++Begin;
-
-			if ( Predicate( Value ) )
-			{
-				return &Value;
-			}
-		}
-
-		return nullptr;
-	} );
-}
+//template < typename T >
+//Deferred< T > ICollection< T >::FindAll( const T& a_Value )
+//{
+//	return Deferred< T >( Size(), [ Begin = this->Begin(), End = this->End(), ValueToFind = &a_Value ]() mutable -> T*
+//	{
+//		while ( Begin != End )
+//		{
+//			T& Value = *Begin;
+//			++Begin;
+//
+//			if ( Value == *ValueToFind )
+//			{
+//				return &Value;
+//			}
+//		}
+//
+//		return nullptr;
+//	} );
+//}
+//
+//template < typename T >
+//template < typename _Predicate, typename >
+//Deferred< T > ICollection< T >::FindAll( _Predicate&& a_Predicate ) &
+//{
+//	return Deferred< T >( Size(), [ Begin = this->Begin(), End = this->End(), Predicate = std::forward< _Predicate >( a_Predicate ) ]() mutable -> T*
+//	{
+//		while ( Begin != End )
+//		{
+//			T& Value = *Begin;
+//			++Begin;
+//
+//			if ( Predicate( Value ) )
+//			{
+//				return &Value;
+//			}
+//		}
+//
+//		return nullptr;
+//	} );
+//}
 
 template < typename T >
 class Enumerable : public ICollection< T >

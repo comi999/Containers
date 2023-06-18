@@ -22,10 +22,13 @@ int main()
 {
 	Array< int, 5 > a = { 1, 3, 3, 3, 5 };
 
-	Deferred< int > df = a.FindAll( []( const int& val ) { return val > 1; } );
-	df = df.FindAll( []( const int& val ) { return val < 5; } );
-	for ( auto& val : df )
-	{
-		std::cout << val << std::endl;
-	}
+	//Deferred< int > df = a.FindAll( 3 );
+	//df.FindAll( []( const int& v ) { return false; } );
+
+	//std::vector< int > vec = { 1,2,3,4,5 };
+
+	//for ( auto& val : df.FindAll( 3 ) )
+	//{
+	//	std::cout << val << std::endl;
+	//}
 }
