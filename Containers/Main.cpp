@@ -21,7 +21,15 @@
 int main()
 {
 	Array< int, 5 > a = { 1, 3, 3, 3, 5 };
-
+	Collection< int > c( 10 );
+	c.Add( 1 );
+	c.Add( 2 );
+	c.Add( 3 );
+	c.Add( 4 );
+	c.Add( 5 );
+	c.Add( 6 );
+	Collection<int> c0;
+	c0 = c;
 	//Deferred< int > df = a.FindAll( 3 );
 	//df.FindAll( []( const int& v ) { return false; } );
 

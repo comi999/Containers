@@ -10,6 +10,66 @@
 #define ENUMERATOR_ERROR_MESSAGE_OUT_OF_RANGE "Iterator outside of bounding range."
 #define ENUMERATOR_ERROR_MESSAGE_NO_VTABLE "No virtual table set."
 #define ENUMERATOR_ERROR_INCOMPATIBLE_UNDERLYING_ITERATORS "Underlying iterators are incompatible and can not be compared."
+#include <vector>
+namespace ContainerTraits
+{
+	template < typename T >
+	struct has_begin
+	{
+	private:
+
+		template < typename U > static char test( std::remove_reference_t< decltype( std::begin( std::declval< T& >() ) ) >* );
+		template < typename U > static long test( ... );
+
+	public:
+	
+		static constexpr bool value = sizeof( test< T >( 0 ) ) == sizeof( char );
+	};
+
+	template < typename T >
+	static constexpr bool has_begin_v = has_begin< T >::value;
+
+	template < typename T >
+	struct has_end
+	{
+	private:
+
+		template < typename U > static char test( std::remove_reference_t< decltype( std::end( std::declval< T& >() ) ) >* );
+		template < typename U > static long test( ... );
+
+	public:
+
+		static constexpr bool value = sizeof( test< T >( 0 ) ) == sizeof( char );
+	};
+
+	template < typename T >
+	static constexpr bool has_end_v = has_begin< T >::value;
+
+	template < typename T >
+	static constexpr bool is_iterable_v = has_begin_v< T > && has_end_v< T >;
+
+	template < typename T >
+	struct has_size
+	{
+	private:
+
+		template < typename U > static char test( std::remove_reference_t< decltype( std::size( std::declval< T& >() ) ) >* );
+		template < typename U > static long test( ... );
+
+	public:
+
+		static constexpr bool value = sizeof( test< T >( 0 ) ) == sizeof( char );
+	};
+
+	template < typename T >
+	struct iterable_type
+	{
+		template < typename U >
+	};
+
+	//template < typename T >
+	//static constexpr bool is_iterable_v = has_begin_v< T > && has_end_v< T > && 
+}
 
 template < typename T >
 class Enumerator;
@@ -1421,6 +1481,29 @@ protected:
 };
 
 template < typename T >
+class Generic : public ICollection< T >
+{
+public:
+
+	Generic() = default;
+	Generic( const Generic& ) = default;
+	Generic( Generic&& ) = default;
+
+	template < typename _Container >
+	Generic( _Container&& a_Container )
+	{
+		static_assert(  )
+	}
+
+
+protected:
+
+	std::any m_Container;
+	Enumerator< T > m_Begin;
+	Enumerator< T > m_End;
+};
+
+template < typename T >
 using SpanIterator = RandomAccessIterator< T* >;
 
 template < typename T >
@@ -1615,9 +1698,8 @@ Collection< T >::Collection( const ICollection< T >& a_Collection, SizeType a_Ca
 template < typename T >
 Collection< T >& Collection< T >::operator=( const Collection& a_Collection )
 {
-	/*BaseType::m_Data = ( T* )std::malloc( a_Collection.m_Capacity * sizeof( T ) );
-	BaseType::m_Size = a_Collection.m_Size;*/
-	BaseType( ( T* )std::malloc( a_Collection.Size() * sizeof( T ) ), a_Collection.Size() );
+	BaseType::m_Data = ( T* )std::malloc( a_Collection.m_Capacity * sizeof( T ) );
+	BaseType::m_Size = a_Collection.m_Size;
 	m_Capacity = a_Collection.m_Capacity;
 
 	if constexpr ( std::is_pod_v< T > )
